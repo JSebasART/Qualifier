@@ -1,0 +1,20 @@
+[submodule "docs"]
+	path = docs
+	url = git@github.com:JSebasART/qualifier-docs.git
+	branch = main
+[submodule "web"]
+	path = web
+	url = git@github.com:JSebasART/qualifier-web.git
+	branch = main
+[submodule "grading-engine"]
+	path = grading-engine
+	url = git@github.com:JSebasART/qualifier-grading-engine.git
+	branch = main
+[submodule "ai-orchestrator"]
+	path = ai-orchestrator
+	url = git@github.com:JSebasART/qualifier-ai-orchestrator.git
+	branch = main
+[submodule "db"]
+	path = db
+	url = git@github.com:JSebasART/qualifier-db.git
+	branch = main
