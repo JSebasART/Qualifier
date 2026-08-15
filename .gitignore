@@ -1,3 +1,6 @@
 # Personal continuity notes — deliberately not committed anywhere.
 # See the file's own header; it holds local infra identifiers and session context.
 session-notes.md
+
+# Claude Code local state — worktree checkouts and launch config.
+.claude/
