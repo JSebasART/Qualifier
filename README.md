@@ -6,8 +6,8 @@ This is a multi-repo project. Each folder below is an **independent git reposito
 
 | Repo | Path | Purpose |
 |---|---|---|
-| `qualifier-docs` | `docs/` | Architecture, playbook schema, Supabase schema, roadmap |
-| `qualifier-web` | `web/` | Next.js app — applicant portal + underwriter/admin dashboard |
+| `qualifier-docs` | `docs/` | Architecture, playbook schema, Supabase schema, roadmap, product gap analysis |
+| `qualifier-web` | `web/` | Next.js app — staff workspace: clients, applications, underwriter cases, tenant admin |
 | `qualifier-grading-engine` | `grading-engine/` | Rules + scoring service (deterministic playbook evaluation) |
 | `qualifier-ai-orchestrator` | `ai-orchestrator/` | Extraction / consistency / risk-narrator agents against the Claude API |
 | `qualifier-db` | `db/` | Supabase Postgres schema, RLS policies, migrations, seed data |
@@ -29,6 +29,7 @@ pointer changes here.
 1. Read `docs/architecture.md` for the module map and how the pieces talk to each other.
 2. Read `docs/roadmap.md` for the phased build plan (MVP → multi-tenant → scale-out).
 3. Read `docs/playbook-schema.md` and `docs/supabase-schema.md` before touching the rules engine or the database.
+4. Read `docs/product-gap-analysis.md` for what's missing before this can be sold, and `docs/mvp-execution-plan.md` for the sequenced plan to a presentable MVP. Both are in Spanish — they're product/business documents, unlike the rest of `docs/`.
 
 ## Local dev (once services are wired together)
 
