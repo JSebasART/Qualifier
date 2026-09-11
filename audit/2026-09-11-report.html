@@ -1,0 +1,579 @@
+<title>Qualifier Audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+  :root {
+    --bg: #F3F5F7;
+    --surface: #FFFFFF;
+    --ink: #172128;
+    --muted: #56636B;
+    --rule: #D5DBE0;
+    --accent: #24527A;
+    --code-bg: #E9EDF1;
+    --critical: #A4231B;
+    --high: #B04F0C;
+    --medium: #7E6100;
+    --low: #4D6570;
+    --fixed: #2B6E45;
+    --display: "IBM Plex Sans Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+    --body: "Source Serif 4", "Iowan Old Style", Georgia, "Times New Roman", serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+    --step--1: 0.8125rem;
+    --step-0: 1.0625rem;
+    --step-1: 1.25rem;
+    --step-2: 1.625rem;
+    --step-3: 2.5rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0F1417;
+      --surface: #161D22;
+      --ink: #E1E7EB;
+      --muted: #97A4AD;
+      --rule: #29333B;
+      --accent: #8DB6DD;
+      --code-bg: #1B242A;
+      --critical: #F28B80;
+      --high: #F0A46E;
+      --medium: #DCC05A;
+      --low: #9FB4BE;
+      --fixed: #7CC897;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F1417;
+    --surface: #161D22;
+    --ink: #E1E7EB;
+    --muted: #97A4AD;
+    --rule: #29333B;
+    --accent: #8DB6DD;
+    --code-bg: #1B242A;
+    --critical: #F28B80;
+    --high: #F0A46E;
+    --medium: #DCC05A;
+    --low: #9FB4BE;
+    --fixed: #7CC897;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: var(--step-0);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    max-width: 62rem;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 5rem;
+  }
+  h1, h2, h3 {
+    font-family: var(--display);
+    font-weight: 600;
+    line-height: 1.15;
+    text-wrap: balance;
+    margin: 0;
+  }
+  h1 { font-size: var(--step-3); letter-spacing: -0.01em; }
+  h2 {
+    font-size: var(--step-2);
+    padding-top: 2.75rem;
+    border-top: 1px solid var(--rule);
+  }
+  h3 { font-size: var(--step-1); font-weight: 600; }
+  p { margin: 0; max-width: 65ch; }
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code, .mono {
+    font-family: var(--mono);
+    font-size: 0.86em;
+  }
+  code {
+    background: var(--code-bg);
+    padding: 0.08em 0.35em;
+    border-radius: 3px;
+    overflow-wrap: anywhere;
+  }
+  .label {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: var(--step--1);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* Header */
+  header { display: grid; gap: 1.25rem; padding-bottom: 2.5rem; }
+  .thesis {
+    font-size: var(--step-1);
+    line-height: 1.45;
+    max-width: 44ch;
+  }
+  .tally {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    font-family: var(--display);
+    font-size: var(--step-0);
+    font-variant-numeric: tabular-nums;
+  }
+  .tally span { display: inline-flex; align-items: baseline; gap: 0.4rem; }
+  .tally b { font-size: var(--step-2); font-weight: 600; line-height: 1; }
+  .sev-critical { color: var(--critical); }
+  .sev-high { color: var(--high); }
+  .sev-medium { color: var(--medium); }
+  .sev-low { color: var(--low); }
+  .sev-fixed { color: var(--fixed); }
+  .scope { color: var(--muted); font-size: var(--step--1); font-family: var(--display); letter-spacing: 0.02em; }
+
+  section { display: grid; gap: 1.5rem; }
+  section + section { margin-top: 3rem; }
+  .intro { color: var(--muted); }
+
+  /* Findings: severity in the margin, content in the column */
+  .finding {
+    display: grid;
+    grid-template-columns: 8.5rem minmax(0, 1fr);
+    gap: 0 2rem;
+    padding: 1.75rem 0;
+    border-top: 1px solid var(--rule);
+  }
+  .finding:first-of-type { border-top: 0; padding-top: 0.5rem; }
+  .margin {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding-top: 0.2rem;
+  }
+  .margin .id {
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+  .margin .sev {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: var(--step--1);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .body { display: grid; gap: 0.85rem; min-width: 0; }
+  .body h4 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: var(--step--1);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0.25rem 0 -0.4rem;
+  }
+  .evidence {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 0.75rem 0.9rem;
+    margin: 0;
+    overflow-x: auto;
+    white-space: pre;
+    max-width: 100%;
+  }
+  .evidence .no { color: var(--critical); }
+  .evidence .yes { color: var(--fixed); }
+  .evidence .dim { color: var(--muted); }
+  .how {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .how span {
+    font-family: var(--display);
+    font-size: 0.75rem;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 0.1rem 0.6rem;
+  }
+
+  /* Fixed-today table */
+  .table-wrap { overflow-x: auto; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.95rem;
+    min-width: 40rem;
+  }
+  th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: 0.7rem 1rem 0.7rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  th {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: var(--step--1);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  td.mono { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    max-width: 65ch;
+  }
+  .callout strong { color: var(--critical); }
+
+  /* Held-up list and ordered plan */
+  .held {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    gap: 1rem 2.5rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+  .held li { display: grid; gap: 0.2rem; }
+  .held b { font-family: var(--display); font-weight: 600; font-size: var(--step-0); }
+  .held span { color: var(--muted); font-size: 0.95rem; }
+  ol.order {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+    display: grid;
+    gap: 1.1rem;
+  }
+  ol.order li {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+    gap: 0 0.75rem;
+  }
+  ol.order li::before {
+    content: counter(step);
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: var(--step-1);
+    color: var(--accent);
+    line-height: 1.3;
+  }
+  ol.order b { font-family: var(--display); font-weight: 600; }
+  ol.order p { color: var(--ink); }
+  .refs { color: var(--muted); font-family: var(--mono); font-size: 0.8rem; }
+
+  details {
+    border-top: 1px solid var(--rule);
+    padding-top: 1rem;
+  }
+  summary {
+    cursor: pointer;
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: var(--step-1);
+  }
+  details > * + * { margin-top: 1rem; }
+
+  footer { margin-top: 4rem; color: var(--muted); font-size: var(--step--1); font-family: var(--display); letter-spacing: 0.02em; }
+
+  @media (max-width: 42rem) {
+    .page { padding: 2rem 1.1rem 4rem; }
+    h1 { font-size: 2rem; }
+    .finding { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+    .margin { flex-direction: row; gap: 0.75rem; align-items: baseline; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<div class="page">
+  <header>
+    <div class="label">Engineering and security audit · 11 September 2026</div>
+    <h1>Qualifier Audit</h1>
+    <p class="thesis">Tenants cannot read each other's data. They can write into it, promote themselves past it, and act on it without leaving a trace.</p>
+    <div class="tally" aria-label="Findings by severity">
+      <span class="sev-critical"><b>1</b> critical</span>
+      <span class="sev-high"><b>3</b> high</span>
+      <span class="sev-medium"><b>8</b> medium</span>
+      <span class="sev-low"><b>3</b> low</span>
+      <span class="sev-fixed"><b>4</b> fixed today</span>
+    </div>
+    <p class="scope">Scope: web, grading-engine, ai-orchestrator, db, docs at develop · the live Render services · the production Supabase catalog (read only)</p>
+  </header>
+
+  <section aria-labelledby="fixed">
+    <h2 id="fixed">Fixed today</h2>
+    <p class="intro">Committed on each repo's <code>develop</code>. None of it is pushed or deployed yet.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Repo</th><th>Commit</th><th>What changed</th><th>Checked by</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>web</td><td class="mono">2c6b73e</td>
+            <td>Next.js 16.2.12 → 16.3.5. Clears two critical unauthenticated-RCE advisories (GHSA-2xp9-vwfh-vxw4, GHSA-p293-qw3h-jr36), plus sharp, postcss, nanoid and two lint-tree advisories.</td>
+            <td>typecheck, lint, production build, <code>npm audit</code> clean</td>
+          </tr>
+          <tr>
+            <td>db</td><td class="mono">3c96a75</td>
+            <td>CI had been red since 2026-07-31: the <code>auth.users</code> stub lacked the columns the suite inserts. Even when fixed, <code>psql -f</code> could not fail on an assertion. It now runs <code>pg_prove</code> over every suite, which brings <code>publish_playbook_test.sql</code> into CI. It also runs on <code>develop</code>.</td>
+            <td>step-by-step replay in PGlite: before, red; after, 41/41 pass</td>
+          </tr>
+          <tr>
+            <td>ai-orchestrator</td><td class="mono">f6c7a3a</td>
+            <td>fastify 5.12.4, fast-uri 3.1.7 / 4.1.4. Production tree audits clean.</td>
+            <td>typecheck, 63 tests</td>
+          </tr>
+          <tr>
+            <td>grading-engine</td><td class="mono">dbc40a1</td>
+            <td>Same fastify / fast-uri patch.</td>
+            <td>typecheck, 51 tests</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="callout"><strong>Production still runs Next 16.2.12.</strong> The RCE fix only reaches users once <code>develop</code> is pushed and promoted to <code>main</code>, and promoting deploys.</p>
+  </section>
+
+  <section aria-labelledby="findings">
+    <h2 id="findings">Findings</h2>
+    <p class="intro">Ranked by what an attacker, or an ordinary mistake, could do. Each finding names how it was verified. None was attempted against production. The twelve probes ran against the repo's own migrations in a local Postgres 17 replay. Production's policies were read from its catalog and match the repo's.</p>
+
+    <article class="finding">
+      <div class="margin"><span class="sev sev-critical">Critical</span><span class="id">C1</span></div>
+      <div class="body">
+        <h3>Any tenant admin can make themselves superadmin</h3>
+        <p><code>profiles_admin_write</code> lets a tenant admin update any profile in their tenant, their own included, and nothing protects the <code>role</code> column. The policy's check calls <code>app_current_role()</code>, a <code>STABLE</code> function that still sees the pre-update row. So it approves the promotion it should refuse. Once promoted, the admin reads and writes every tenant.</p>
+        <p>No UI is needed. The admin's own session plus the public anon key reach PostgREST directly. The rule in <code>/api/users</code> ("only a superadmin can mint another") exists only in the route, never in the database.</p>
+        <h4>Evidence</h4>
+<pre class="evidence"><span class="dim"># P1 attempt: no error</span>
+<span class="no">not ok 1</span> - P1 a tenant_admin cannot promote themselves to superadmin
+<span class="dim">#   have: superadmin
+#   want: tenant_admin</span>
+<span class="no">not ok 2</span> - P2 tenant A's admin still cannot read tenant B's applications
+<span class="dim">#   have: 1
+#   want: 0</span></pre>
+        <h4>Fix</h4>
+        <p>In one migration: revoke <code>update (role, tenant_id)</code> on <code>profiles</code> from <code>authenticated</code>, and route role changes through an RPC that checks the caller explicitly. Add a check constraint that a superadmin has no tenant. Then add P1 and P2 to the pgTAP suite so this stays fixed.</p>
+        <div class="how"><span>reproduced in local replay</span><span>grants read from production</span></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="margin"><span class="sev sev-high">High</span><span class="id">H1</span></div>
+      <div class="body">
+        <h3>Underwriters can write scores, including into another tenant</h3>
+        <p><code>scores_system_write</code> checks only the caller's role, never the tenant. Scores are the pipeline's output, and the pipeline writes with the service role, which bypasses RLS. So no signed-in role needs to insert them at all. As things stand, an underwriter can put a hand-made "approve" on their own tenant's application. Given the other tenant's application ID, they can write one onto that tenant's too. "Every decision records the exact playbook version that produced it" is only as true as this table.</p>
+        <h4>Evidence</h4>
+<pre class="evidence"><span class="no">not ok 3</span> - P3 an underwriter in tenant A cannot write a score into tenant B
+<span class="no">not ok 4</span> - P4 an underwriter cannot write the pipeline's score for their own tenant's application</pre>
+        <h4>Fix</h4>
+        <p>Drop the policy, and revoke <code>insert, update</code> on <code>scores</code> from <code>authenticated</code>. Nothing in <code>web</code> writes scores, so nothing breaks.</p>
+        <div class="how"><span>reproduced in local replay</span><span>policy read from production</span><span>code read</span></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="margin"><span class="sev sev-high">High</span><span class="id">H2</span></div>
+      <div class="body">
+        <h3>Who decides a case is enforced in React, not in the database</h3>
+        <p>The <code>applications</code> and <code>cases</code> policies check tenant membership only. An agent, the intake role, can approve an application and resolve a case directly. <code>roles.ts</code> says every UI gate mirrors a policy. For decisions, none exists. The decision itself is two to four separate browser writes (<code>case-detail.tsx:141–165</code>), so a failure between them leaves the application approved and the case open.</p>
+        <h4>Evidence</h4>
+<pre class="evidence"><span class="no">not ok 5</span> - P5 an agent (intake role) cannot approve an application
+<span class="no">not ok 6</span> - P6 an agent cannot resolve a case</pre>
+        <h4>Fix</h4>
+        <p>A <code>decide_case()</code> RPC, built the way <code>publish_playbook()</code> already is. It checks the role, updates the application and the case, and writes the comment and the audit row in one transaction. Then narrow the table policies so status changes can only happen through it. This one change also fixes H3.</p>
+        <div class="how"><span>reproduced in local replay</span><span>code read</span></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="margin"><span class="sev sev-high">High</span><span class="id">H3</span></div>
+      <div class="body">
+        <h3>No decision has ever reached the audit log</h3>
+        <p>The case screen writes its audit entries (approve, decline, request information, assign) and its comments without <code>tenant_id</code>. The column has no default, so RLS rejects every one. The screen never checks those errors, and it shows the decision as saved. Production confirms this: the only audit rows are the 11 seeded <code>system application.scored</code> entries. A comment typed alongside a decision is also lost without notice.</p>
+        <h4>Evidence</h4>
+<pre class="evidence"><span class="dim"># P10 attempt: new row violates row-level security policy for table "audit_log"</span>
+<span class="no">not ok 10</span> - P10 the case screen's decision audit insert is recorded
+<span class="dim"># P11 attempt: new row violates row-level security policy for table "case_comments"</span>
+<span class="no">not ok 11</span> - P11 the case screen's comment insert is recorded</pre>
+        <h4>Fix</h4>
+        <p>Folded into <code>decide_case()</code> (H2). The assignment write in <code>cases/page.tsx:210</code> needs the same treatment. Until then, passing <code>tenant_id</code> and surfacing the error would at least make the loss visible.</p>
+        <div class="how"><span>reproduced in local replay</span><span>production audit_log read</span><span>code read</span></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="margin"><span class="sev sev-medium">Medium</span><span class="id">M1</span></div>
+      <div class="body">
+        <h3>The playbook test endpoint answers anyone</h3>
+        <p><code>POST /api/playbooks/test</code> has no session check. It forwards whatever it receives to the grading engine with the service token attached. So anyone on the internet can run scoring on the free-tier engine, through the very boundary the token exists to guard. It exposes no tenant data.</p>
+        <h4>Evidence</h4>
+<pre class="evidence">$ curl -X POST -d '{}' https://qualifier-web.onrender.com/api/playbooks/test
+{"error":{"formErrors":[],"fieldErrors":{"playbook":["Required"],"fields":["Required"]}}} [400]   <span class="dim"># the engine's own validator answered</span>
+$ curl -X POST https://qualifier-web.onrender.com/api/users
+{"error":"unauthenticated"} [401]   <span class="dim"># what it should look like</span></pre>
+        <h4>Fix</h4>
+        <p>Require a signed-in tenant admin or superadmin, as <code>/api/users</code> does, and cap the body size.</p>
+        <div class="how"><span>confirmed live, unauthenticated</span><span>code read</span></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="margin"><span class="sev sev-medium">Medium</span><span class="id">M2</span></div>
+      <div class="body">
+        <h3>The pipeline follows cross-tenant pointers the browser wrote</h3>
+        <p>Foreign keys don't carry the tenant. So an application can name another tenant's playbook, and a document can attach itself to another tenant's application. The orchestrator then reads both with the service role and no tenant check. It will score with the other tenant's rules and copy their rule trace into this tenant's score, and it will feed a foreign document into the other tenant's case. It also downloads whatever <code>storage_path</code> a document row names. RLS hides the IDs this needs, so this is missing defence in depth rather than an open door.</p>
+        <h4>Evidence</h4>
+<pre class="evidence"><span class="no">not ok 8</span> - P8 an application cannot point at another tenant's playbook
+<span class="no">not ok 9</span> - P9 a document cannot be attached to another tenant's application</pre>
+        <h4>Fix</h4>
+        <p>Composite foreign keys on <code>(tenant_id, id)</code>. In <code>processApplication</code> and <code>extractDocument</code>, assert that the playbook's tenant matches, and that <code>storage_path</code> starts with <code>{tenant_id}/{application_id}/</code>.</p>
+        <div class="how"><span>reproduced in local replay</span><span>code read</span></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="margin"><span class="sev sev-medium">Medium</span><span class="id">M3</span></div>
+      <div class="body">
+        <h3>Anyone with the public key can list every tenant's products</h3>
+        <p><code>products_public_read_active</code> is left over from the applicant portal, which has since been removed. It gives the anonymous role every active product: tenant IDs, names and form schemas. The anon key ships in the browser bundle by design, so "anyone" is literal.</p>
+        <h4>Evidence</h4>
+<pre class="evidence"><span class="no">not ok 12</span> - P12 an anonymous caller cannot list tenants' products
+<span class="dim">#   have: 2
+#   want: 0</span></pre>
+        <h4>Fix</h4>
+        <p>Drop the policy. <code>products_select</code> already covers staff.</p>
+        <div class="how"><span>reproduced in local replay</span><span>policy read from production</span></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="margin"><span class="sev sev-medium">Medium</span><span class="id">M4</span></div>
+      <div class="body">
+        <h3>Staff can write audit entries in the system's name</h3>
+        <p><code>audit_log_insert</code> lets any tenant member insert any <code>actor_type</code>. An agent can record that the system scored an application. This is the premise behind <code>SEC-1</code>, now with a reproduction.</p>
+        <h4>Evidence</h4>
+<pre class="evidence"><span class="no">not ok 7</span> - P7 a staff member cannot write an audit entry attributed to the system</pre>
+        <h4>Fix</h4>
+        <p>Revoke insert from <code>authenticated</code>. Staff actions are then audited by the RPCs, with the actor taken from <code>auth.uid()</code> rather than from the request.</p>
+        <div class="how"><span>reproduced in local replay</span></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="margin"><span class="sev sev-medium">Medium</span><span class="id">M5</span></div>
+      <div class="body">
+        <h3>Re-running an application duplicates its score, its case and its model spend</h3>
+        <p><code>processApplication</code> makes both Claude calls, then writes the score, the status, the case and the audit rows as separate statements. Nothing is unique per application: production has only primary keys on <code>scores</code> and <code>cases</code>. A failure at the case insert gets retried, and pg-boss allows five retries. That can mean up to six score rows and twelve paid model calls for one application. A successful run that is triggered again opens a second case.</p>
+        <h4>Fix</h4>
+        <p>A unique index on open cases per application. Skip the model calls when a score already exists for that application and playbook version. Do the writes in one RPC transaction.</p>
+        <div class="how"><span>code read</span><span>indexes read from production</span></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="margin"><span class="sev sev-medium">Medium</span><span class="id">M6</span></div>
+      <div class="body">
+        <h3>Four of five repos test only what is already being deployed</h3>
+        <p>CI in <code>web</code>, <code>grading-engine</code>, <code>ai-orchestrator</code> and <code>docs</code> runs on pushes to <code>main</code> and on PRs. Work lands on <code>develop</code> and reaches <code>main</code> by fast-forward, which deploys. So CI first sees a change on its way to production. <code>db</code> is fixed today. Nobody here could see Actions results either (private repos, no <code>gh</code>), which is how <code>db</code> stayed red for six weeks.</p>
+        <h4>Fix</h4>
+        <p>Add <code>develop</code> to each trigger, one line per repo. Then make a CI check part of the "promote develop to main" runbook step.</p>
+        <div class="how"><span>workflow files read</span></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="margin"><span class="sev sev-medium">Medium</span><span class="id">M7</span></div>
+      <div class="body">
+        <h3>The web app sends no security headers</h3>
+        <p>The sign-in page's response headers include <code>x-powered-by: Next.js</code> and none of the usual protections: no content security policy, no frame-ancestors, no HSTS, no <code>nosniff</code>, no referrer policy. That matters for a staff app holding identity documents and a service-role key on its server.</p>
+        <h4>Fix</h4>
+        <p><code>headers()</code> and <code>poweredByHeader: false</code> in <code>next.config.ts</code>. Start the CSP as report-only, because Supabase and Tailwind need specific allowances.</p>
+        <div class="how"><span>confirmed live</span><span>config read</span></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="margin"><span class="sev sev-medium">Medium</span><span class="id">M8</span></div>
+      <div class="body">
+        <h3>The escalation model is a retired one</h3>
+        <p><code>ai-orchestrator/render.yaml</code> still declares <code>MODEL_ESCALATION=claude-opus-4-1</code>, so any call routed to escalation fails and burns its retries. This is already <code>PLAN.md</code> step 2 and still a decision for you. It's listed here because it's a live defect, not just a preference.</p>
+        <div class="how"><span>blueprint read</span><span>known, tracked</span></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="margin"><span class="sev sev-low">Low</span><span class="id">L1</span></div>
+      <div class="body">
+        <h3>vitest's dev tree carries a critical advisory</h3>
+        <p>Both Fastify services report five findings, one critical, all under vitest 2. None of it ships in an image. Clearing them takes vitest 3 or later, a breaking upgrade.</p>
+        <div class="how"><span>npm audit</span></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="margin"><span class="sev sev-low">Low</span><span class="id">L2</span></div>
+      <div class="body">
+        <h3>The <code>/analyze</code> development route is live in production</h3>
+        <p>It sits behind the service token. It runs the whole pipeline synchronously on inline payloads, and its spend is recorded as unattributed. Gate it behind a flag that is off in production.</p>
+        <div class="how"><span>code read</span></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="margin"><span class="sev sev-low">Low</span><span class="id">L3</span></div>
+      <div class="body">
+        <h3>pgTAP is installed in the production database</h3>
+        <p>Version 1.3.3 sits in the <code>extensions</code> schema. Nothing uses it at runtime. Test tooling belongs in the test database (<code>BLK-4</code>).</p>
+        <div class="how"><span>production catalog read</span></div>
+      </div>
+    </article>
+  </section>
+
+  <section aria-labelledby="held">
+    <h2 id="held">What held up</h2>
+    <ul class="held">
+      <li><b>Tenant read isolation</b><span>All 31 RLS assertions pass under pg_prove semantics. Every table has RLS on and a policy.</span></li>
+      <li><b>The rules engine fails closed</b><span>A rule that can't be evaluated leaves a sentinel row and forces manual review. The tests cover exactly that path.</span></li>
+      <li><b>Service-to-service auth</b><span>Digest compare in constant time, a 32-character minimum, and no boot without a token. The routes that should answer 401 do.</span></li>
+      <li><b>Document storage</b><span>Private bucket, 5 MB cap, MIME allowlist. MIME is sniffed from the bytes, not the filename.</span></li>
+      <li><b>Queue design</b><span>Stately singleton dedupe, a dead letter that closes out stuck documents, and a health check that reads job age, not depth.</span></li>
+      <li><b>Database hygiene</b><span>Views run as <code>security_invoker</code>, definer helpers pin <code>search_path</code>, and every container runs as a non-root user.</span></li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="order">
+    <h2 id="order">Suggested order</h2>
+    <ol class="order">
+      <li><p><b>Push and promote today's commits.</b> That puts the Next.js fix in front of users. Watch <code>db</code>'s first real CI run: the one part the replay couldn't exercise is the apt package that provides pg_prove.</p></li>
+      <li><p><b>One migration for the database's side of C1, H1, M3 and M4,</b> with probes P1–P4, P7 and P12 added to the pgTAP suite. It's mostly revokes and dropped policies, so it's small and hard to get wrong.</p><p class="refs">db · C1 H1 M3 M4</p></li>
+      <li><p><b><code>decide_case()</code> and the case screen moved onto it.</b> Role-checked decisions, one transaction, and an audit trail that finally records something.</p><p class="refs">db + web · H2 H3 · closes most of SEC-1</p></li>
+      <li><p><b>Web hardening:</b> authenticate the playbook test route and add security headers.</p><p class="refs">web · M1 M7</p></li>
+      <li><p><b>Pipeline integrity:</b> tenant-carrying foreign keys, the orchestrator's own tenant assertions, and idempotent processing.</p><p class="refs">db + ai-orchestrator · M2 M5</p></li>
+      <li><p><b>Tooling:</b> CI on <code>develop</code> everywhere, vitest 3, and the <code>/analyze</code> gate.</p><p class="refs">all repos · M6 L1 L2</p></li>
+    </ol>
+    <p>Steps 2 and 3 should land before the demo's real pipeline run (<code>BLK-5</code>). The demo script ends with an underwriter's decision, and today that decision leaves no record.</p>
+  </section>
+
+  <details>
+    <summary>Method and limits</summary>
+    <p>Live checks: health, queue and token probes against all three Render services, plus unauthenticated requests to every <code>web</code> API route. The production database was read inside a <code>read only</code> transaction for its policies, grants, constraints, functions, buckets and row counts. No write was attempted there.</p>
+    <p>The CI workflow was replayed step by step against PGlite (Postgres 17) with a pgTAP stand-in for the seven functions the suites use. The twelve probes ran in that same database after the replay's migrations and seed. They are saved next to this report as <code>audit/2026-09-11-probes.sql</code> in the umbrella repo, ready to move into <code>db</code>'s suite as each fix lands.</p>
+    <p>Not covered: a signed-in pass through the UI, GitHub Actions results, a line-by-line review of the large React components, and prompt-injection resistance of the three agents against hostile document content. That last one deserves its own look before real applicants' files arrive.</p>
+    <pre class="evidence"><span class="dim">audit-probes.sql: planned 12, ran 12, passed 0, failed 12
+publish_playbook_test.sql: planned 10, ran 10, passed 10</span>  <span class="yes">PASS</span>
+<span class="dim">rls_isolation_test.sql:    planned 31, ran 31, passed 31</span>  <span class="yes">PASS</span></pre>
+  </details>
+
+  <footer>Qualifier · audit of develop as of 11 September 2026 · the findings reference probes P1–P12 and the gap-analysis identifiers used across the planning docs</footer>
+</div>

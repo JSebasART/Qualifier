@@ -26,6 +26,23 @@ pointer changes here.
 
 ## Start here
 
+**Read [`STATUS.md`](STATUS.md) first.** It is a dated, evidence-backed snapshot
+of what is deployed versus what is built. The two can differ: work lands on each
+repo's `develop` branch, Render deploys `main`, and this repo pins `main`. They
+drifted three weeks apart before the promotion on 2026-09-10.
+
+Then:
+
+- [`CLAUDE.md`](CLAUDE.md) — how this workspace fits together: the submodule
+  commit flow, the invariants worth not breaking, and the traps that have already
+  cost time. Written for whoever (or whatever) picks the project up cold.
+- [`PLAN.md`](PLAN.md) — what to do next, in order, from restoring service to a
+  demo you can run in front of a prospect.
+- [`RUNBOOK.md`](RUNBOOK.md) — the commands: rebuild the database, deploy,
+  verify, prepare for a demo.
+
+Then the reference documentation:
+
 1. Read `docs/architecture.md` for the module map and how the pieces talk to each other.
 2. Read `docs/roadmap.md` for the phased build plan (MVP → multi-tenant → scale-out).
 3. Read `docs/playbook-schema.md` and `docs/supabase-schema.md` before touching the rules engine or the database.

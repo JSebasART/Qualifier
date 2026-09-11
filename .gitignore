@@ -4,3 +4,9 @@ session-notes.md
 
 # Claude Code local state — worktree checkouts and launch config.
 .claude/
+
+# Local secrets: the single file that feeds every service's .env. Never commit.
+qualifier.env.txt
+*.env.txt
+.env*
+*.env
