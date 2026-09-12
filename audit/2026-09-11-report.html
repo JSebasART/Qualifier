@@ -354,7 +354,7 @@
       </table>
     </div>
 
-    <p class="callout"><strong>None of this is live yet, and the order matters.</strong> Production still runs the 2026-09-10 code, including Next.js 16.2.12. The migration <code>20260911000000</code> must be applied to the database <em>before</em> the new <code>web</code> build is promoted: without it the functions the case screen now calls do not exist, and with it but without the new build, the old direct writes are refused.</p>
+    <p class="callout"><strong>Live as of 12 September, 07:44 UTC.</strong> The migration went to the database first, then all five repos were promoted — that order was not optional, since the case screen calls functions the migration creates. Verified against production afterwards: an unauthenticated <code>POST /api/playbooks/test</code> answers 401 where it used to forward the request with the service token attached, all six security headers are present with the CSP naming the real Supabase origin, the grading engine accepts the token, and the queue reports <code>ok</code> with no dead letters. What has <em>not</em> happened: a signed-in session exercising the new decision path.</p>
   </section>
 
   <section aria-labelledby="findings">
@@ -575,9 +575,8 @@
   <section aria-labelledby="order">
     <h2 id="order">What is left</h2>
     <ol class="order">
-      <li><p><b>Apply the migration, then promote.</b> <code>20260911000000</code> goes to the database first; the new <code>web</code> build depends on the functions it creates. Then push and promote all five repos, which also carries the Next.js RCE fix that production is still missing.</p><p class="refs">deploy · ordering is not optional</p></li>
-      <li><p><b>Watch the first real CI runs.</b> The replay could not exercise one thing: the apt package that provides <code>pg_prove</code> on a GitHub runner.</p><p class="refs">db</p></li>
-      <li><p><b>Re-probe production once it is live</b> — the unauthenticated playbook-test call, the security headers, and a real decision that lands in <code>audit_log</code>.</p><p class="refs">web · M1 M7 H3</p></li>
+      <li><p><b>Decide a case while signed in.</b> Everything else here was verified without a session, and this is the one path nothing has exercised end to end: an underwriter approving a case, the note and the audit row landing, an agent seeing no buttons at all. It is also the demo's final beat.</p><p class="refs">H2 H3 · part of BLK-5</p></li>
+      <li><p><b>Read the first CI runs.</b> They fired on <code>develop</code> for the first time today and nobody on this machine can see them (private repos, no <code>gh</code>). <code>db</code>'s <code>pg_prove</code> step has still never run on a real runner — the one thing the local replay cannot exercise.</p><p class="refs">db · M6</p></li>
       <li><p><b>Then the three low findings,</b> and the CSP's move out of report-only once its violations are known.</p><p class="refs">L1 L2 L3 M7</p></li>
     </ol>
     <p>The audit did not cover prompt-injection resistance of the three agents against hostile document content. That deserves its own look before real applicants' files arrive.</p>
