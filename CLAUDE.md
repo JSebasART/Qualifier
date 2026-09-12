@@ -159,6 +159,16 @@ relevant commit message, in `docs/deployment.md`, or in
   `max_tokens` 2048, and only escalation raises it to 8192
   (`ai-orchestrator/src/agents/routing.ts`). Sonnet 5 thinks by default, and
   thinking shares that budget with the JSON the agents must return.
+- **A lockfile edited on Windows can be one Linux cannot install.** `npm audit
+  fix` here — especially twice, or after an `--omit=dev` run pruned the tree —
+  can leave a `package-lock.json` missing entries for packages that only resolve
+  on Linux (the `@emnapi/*` packages reached through `sharp`'s wasm fallback did
+  it on 2026-09-12). `npm ci` passes locally, because those optional packages
+  are not installed here, and then the deploy dies in thirteen seconds with
+  `npm error code EUSAGE … Missing: @emnapi/runtime@… from lock file`.
+  `npm install --package-lock-only` does **not** repair it: npm answers "up to
+  date" and keeps the hole. Delete `node_modules` *and* the lockfile, then
+  `npm install`. Only the image build proves a lockfile.
 - **Secrets live in one git-ignored file**, `qualifier-secrets.env.txt`. Never
   paste it into a chat or open it with file tools — a changed file can be echoed
   into the conversation. Read it with scripts that print key names only.

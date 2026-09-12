@@ -1,144 +1,138 @@
 # Status — verified 2026-09-12
 
 Measured against the running services, the production database (read only) and
-the repos. Service checks ran 2026-09-11 from 20:12 UTC; nothing has been
-deployed since, so they still describe production. The code checks below ran on
-2026-09-12.
+the repos. The checks below ran between 07:34 and 07:44 UTC on 2026-09-12,
+after the deploy.
 
-**Headline.** Production is unchanged since the 2026-09-10 promotion and has
-still processed nothing (`BLK-5` is open). Six commits now sit on `develop`,
-**unpushed**, carrying the 2026-09-11 audit's fixes: every critical, high and
-medium finding. Production therefore still has all of them, including a
-Next.js version with two critical RCE advisories.
+**Headline.** The 2026-09-11 audit's fixes are live. Every critical, high and
+medium finding is closed in production: the write side of the database is
+authorised, the case screen's decisions go through role-checked functions that
+record what happened, the playbook-test route no longer answers strangers, and
+`web` runs Next.js 16.3.5 instead of a version with two critical RCE advisories.
 
-**The next action has an order that is not optional.** The database migration
-`20260911000000` must be applied *before* the new `web` build is promoted. The
-case screen now calls functions that migration creates; with the migration but
-without the build, the old direct writes are refused.
+What has still never happened is a real pipeline run (`BLK-5`), and now also a
+signed-in pass through the new decision path. Nothing has exercised the RPCs
+with a real session.
 
 ## 0. How we got here
 
 - **2026-09-06** — this file said the Supabase project had been deleted and
-  every pin was current. Both were wrong. The project was *paused*, and pins had
-  only been compared with `main`, missing a `develop` branch 27 commits ahead.
-- **2026-09-10** — the project was restored with all data intact, Render's
-  environment re-entered from the secrets file, and `develop` promoted to `main`
-  in all five repos.
-- **2026-09-11** — re-verified; dependency patches and a `db` CI fix committed;
-  the whole project audited (§ 4).
-- **2026-09-12** — the audit's critical, high and medium findings fixed and
-  re-audited. Nothing pushed.
+  every pin was current. Both were wrong: the project was *paused*, and pins had
+  only been compared with `main`, missing a `develop` 27 commits ahead.
+- **2026-09-10** — project restored, Render's environment re-entered, `develop`
+  promoted in all five repos.
+- **2026-09-11** — dependency patches and a `db` CI fix; the whole project
+  audited (§ 4).
+- **2026-09-12** — the audit's critical, high and medium findings fixed,
+  re-audited, and deployed. The migration went to the database first; `web` and
+  `grading-engine` then failed to build twice on a lockfile problem (§ 5) before
+  going live.
 
 ## 1. Services
 
-| Service | Deployed commit | Live since (UTC) | Check, 2026-09-11 20:12 UTC |
-| --- | --- | --- | --- |
-| `qualifier-grading-engine` | `891a435` | 2026-09-11 00:57 | `/health` 200; accepts the token (`/score` answers 400 to an empty body, not 401) |
-| `qualifier-ai-orchestrator` | `5b57702` | 2026-09-11 00:57 | `/health` 200; `/health/queue` `ok`, three queues empty, `dead_letter` 0 |
-| `qualifier-web` | `5d7d8de` | 2026-09-11 00:57 | 200 |
+All three live, checked 2026-09-12 07:43 UTC.
 
-- All three answered after a cold start of about 12 s, with no error or warning
-  log lines since the deploys.
-- The orchestrator spun down at 01:14 UTC and stayed down until the 20:12 probe.
-  Nothing used it in between, and the grading engine's only `/score` call all
-  day was that probe.
-- Production still answers an unauthenticated `POST /api/playbooks/test` by
-  forwarding it to the grading engine (audit `M1`), because the fix is not
-  deployed.
+| Service | Deployed commit | Check |
+| --- | --- | --- |
+| `qualifier-web` | `3b40927` | `/` 200; `/api/playbooks/test` **401** unauthenticated; `/api/users` and `/api/documents/…/extract` 401; all six security headers present, CSP naming the real Supabase origin; no `x-powered-by` |
+| `qualifier-grading-engine` | `a828460` | `/health` 200; `/score` answers 400 to an empty body, so the token is accepted |
+| `qualifier-ai-orchestrator` | `afee9ce` | `/health/queue` 200 `ok`, three queues empty, `dead_letter` 0 |
 
-## 2. Repositories
+`docs` is at `5a5baa3` and `db` at `66208c2`; neither deploys anything.
 
-`main` equals the umbrella's pins and is what is deployed. `develop` is ahead in
-all five repos, all of it local.
+## 2. The database — `jskuoazhcgfyetxrmxyi`
 
-| Repo | `main` (deployed) | `develop` (local) | What it adds |
-| --- | --- | --- | --- |
-| `db` | `b522794` | `66208c2` | CI fix (2026-09-11), then the write-authorization migration and its 38-assertion suite |
-| `web` | `5d7d8de` | `9d65674` | Next.js 16.3.5, then case decisions through RPCs, the playbook-test route authenticated, security headers |
-| `ai-orchestrator` | `5b57702` | `afee9ce` | fastify patch, then tenant assertions, resumable processing, escalation model, CI on `develop` |
-| `grading-engine` | `891a435` | `f9320bc` | fastify patch, then CI on `develop` |
-| `docs` | `ce31b99` | `5a5baa3` | CI on `develop` |
+Production, and the only project. **Migration `20260911000000` is applied**,
+recorded in the ledger as `20260912073356` (apply-time versions, as the existing
+15 rows are — see § 5).
 
-Verification on 2026-09-12:
+Verified read-only afterwards:
 
-- **`db`:** the CI workflow replayed step by step against PGlite — 79 assertions
-  across three pgTAP suites, all passing (31 read isolation, 38 write
-  authorization, 10 publish).
-- **`ai-orchestrator`:** typecheck, 70 tests (63 before).
-- **`grading-engine`:** typecheck, 51 tests.
-- **`web`:** typecheck, lint, production build. The built app was then run
-  locally and probed: `/api/playbooks/test` answers 401 unauthenticated, and all
-  six security headers are present.
-- **The audit's twelve probes:** 12 of 12 pass against the fixed schema, each
-  refused by a named mechanism (column privileges, revoked grants, composite
-  foreign keys).
+- the three over-broad policies are gone (`scores_system_write`,
+  `products_public_read_active`, `audit_log_insert`), and the four "for all"
+  tenant policies are replaced by select-plus-narrow-write pairs;
+- `decide_case`, `request_case_info`, `assign_case`, `submit_application` and
+  `set_staff_role` exist, executable by `authenticated` and not by `anon`;
+- `authenticated` can no longer insert into `scores` or `audit_log`, or write
+  `cases`, `case_comments`, `applications.status` or `documents`;
+- `profiles.role` and `profiles.tenant_id` are not updatable with a user JWT
+  while `full_name` still is;
+- 9 composite foreign keys, the superadmin constraint and the one-open-case
+  index are in place.
 
-## 3. The database — `jskuoazhcgfyetxrmxyi`
+Contents are unchanged from the demo portfolio seeded on 2026-08-18: two
+tenants, 14 clients, 15 applications, 11 cases, 28 documents, 11 scores, 11
+audit entries (all seeded), 9 staff profiles, 11 auth users, `ai_usage` 0, no
+pg-boss jobs.
 
-Production, and the only project. Up, not paused, and **still on the old
-schema** — `20260911000000` has not been applied. Contents are unchanged from
-the demo portfolio seeded on 2026-08-18:
+## 3. Repositories
 
-- two tenants, `seguros` and `medico`, each with one published v1 playbook;
-- 14 clients, 15 applications, 11 cases, 28 documents, 11 scores;
-- 11 audit entries, all seeded `system application.scored`;
-- 9 staff profiles and 11 auth users, one sign-in since the promotion
-  (2026-09-11 02:11 UTC);
-- `ai_usage` 0, pg-boss jobs 0.
+`main` equals `develop` equals the umbrella's pins in all five repos, and all of
+it is pushed.
 
-Every constraint the new migration adds is already satisfied by this data: no
-cross-tenant references, no duplicate open cases, every storage path inside its
-own application's folder, and only the superadmin without a tenant.
+| Repo | `main` | What landed today |
+| --- | --- | --- |
+| `db` | `66208c2` | write-authorization migration, 38-assertion suite, CI mirroring Supabase's default privileges |
+| `web` | `3b40927` | decisions via RPCs, route authenticated, security headers, rebuilt lockfile |
+| `ai-orchestrator` | `afee9ce` | tenant assertions, resumable processing, escalation model, CI on `develop` |
+| `grading-engine` | `a828460` | CI on `develop`, rebuilt lockfile |
+| `docs` | `5a5baa3` | CI on `develop` |
 
-## 4. Audit — found 2026-09-11, fixed 2026-09-12
+Verification before promoting: 79 pgTAP assertions across three suites in a
+step-by-step replay of `db`'s CI workflow; 70 orchestrator tests; 51
+grading-engine tests; `web` typecheck, lint and production build; and the audit's
+twelve original probes passing 12 of 12 against the fixed schema.
+
+## 4. Audit — found 2026-09-11, fixed and deployed 2026-09-12
 
 Full report: [`audit/2026-09-11-report.html`](audit/2026-09-11-report.html).
-The twelve probes are [`audit/2026-09-11-probes.sql`](audit/2026-09-11-probes.sql);
-their durable form is now `db`'s `write_authorization_test.sql`, which runs on
-every push.
+Probes: [`audit/2026-09-11-probes.sql`](audit/2026-09-11-probes.sql); their
+durable form is `db`'s `write_authorization_test.sql`, which runs on every push.
 
-RLS isolated tenants' reads and almost nothing else. Twelve probes, all failing.
-**Twelve of the fifteen findings are fixed** (every critical, high and medium);
-the three left are low.
+Twelve of fifteen findings are fixed and live — `C1`, `H1`–`H3`, `M1`–`M8`. The
+three open ones are low: `L1` vitest's dev-only advisories, `L2` the `/analyze`
+development route being reachable in production, `L3` pgTAP installed in the
+production database.
 
-| | Finding | State |
-| --- | --- | --- |
-| `C1` | a tenant admin could promote themselves to superadmin | fixed — column privileges, `set_staff_role()` |
-| `H1` | underwriters could write scores, including into another tenant | fixed — policy dropped, grants revoked |
-| `H2` | an agent could approve applications and resolve cases | fixed — role-checked RPCs own the transitions |
-| `H3` | no decision had ever reached `audit_log` | fixed — the RPCs write it, from `auth.uid()` |
-| `M1` | the playbook-test route answered anyone | fixed — staff session required, body capped |
-| `M2` | the pipeline followed cross-tenant pointers | fixed — composite FKs, plus read-time assertions |
-| `M3` | the anon key could list every tenant's products | fixed — leftover policy dropped |
-| `M4` | staff could forge `system` audit entries | fixed — insert revoked |
-| `M5` | re-running an application duplicated score, case and spend | fixed — resumable, with a unique open-case index |
-| `M6` | CI ran only on `main` in four repos | fixed — `develop` added everywhere |
-| `M7` | no security headers | fixed — headers added, CSP report-only |
-| `M8` | the escalation model was retired | fixed — `claude-sonnet-5` in the blueprint |
-| `L1` `L2` `L3` | vitest dev advisories, `/analyze` live in production, pgTAP installed in production | open |
+## 5. What went wrong on the way out
 
-## 5. Open issues and risks
+Worth keeping, because both cost real time:
 
-1. **Nothing is deployed.** Production runs the old code, with every finding
-   above still live, including Next.js 16.2.12's critical advisories.
-2. **Deploy order.** Migration first, then promote. See the headline.
-3. **`BLK-5`: no application has gone through the deployed pipeline.** The
-   Spanish narrative has never been observed.
-4. **`MODEL_DEFAULT`.** The secrets file still says `claude-sonnet-5`, which the
-   default path's 2048-token budget can't carry. Render runs
-   `claude-sonnet-4-5`; keep it.
-5. **One Supabase project, and it is production** (`BLK-4`). Idle enough to
-   pause again.
-6. **Nothing watches it** (`NEG-2`).
-7. **`render-blocks.env` is still on disk.** An automated delete was blocked;
-   delete it by hand. Everything in it is in the secrets file or is a public URL.
+- **`supabase db push` would have been a disaster.** The ledger keys migrations
+  by apply-time version and none of its rows match the repo's filenames, so a
+  push would have judged all 14 files unapplied and started again from
+  `init_schema`. The migration was applied as one transaction instead, behind
+  pre-flight checks for every constraint it adds.
+- **A lockfile written on Windows was not installable on Linux.** `web` and
+  `grading-engine` both failed in thirteen seconds on `npm ci` with
+  `Missing: @emnapi/… from lock file`, entries an earlier `npm audit fix` had
+  pruned here, where those optional packages never install.
+  `npm install --package-lock-only` does not repair it — it reports "up to
+  date". Deleting `node_modules` and the lockfile and reinstalling does. The
+  trap is now in CLAUDE.md.
 
-## 6. Not verified
+## 6. Open issues and risks
 
-- Signing in to the web app. That needs staff credentials, which were not used.
-- GitHub Actions results — private repos, no `gh` CLI here. The `db` fix needs
-  its first real run, which is also the only thing the local replay cannot
-  exercise: the apt package that provides `pg_prove`.
-- The new RPCs against production, since the migration is not applied there.
+1. **`BLK-5`: no application has gone through the pipeline**, and no signed-in
+   session has exercised the new decision path. Both belong to the same smoke
+   test (PLAN.md step 1).
+2. **`MODEL_DEFAULT`.** The secrets file still says `claude-sonnet-5`, which the
+   default path's 2048-token budget can't carry. Render runs `claude-sonnet-4-5`;
+   keep it. `MODEL_ESCALATION` is now `claude-sonnet-5` in the blueprint.
+3. **One Supabase project, and it is production** (`BLK-4`), with no rehearsed
+   restore.
+4. **Nothing watches it** (`NEG-2`).
+5. **`render-blocks.env` is still on disk.** An automated delete was blocked;
+   delete it by hand.
+6. The three low audit findings.
+
+## 7. Not verified
+
+- A signed-in pass through the UI: a real decision landing in `audit_log`, an
+  assignment, a submission. This is the first thing to do.
+- GitHub Actions results. The repos are private and there is no `gh` CLI here.
+  CI ran on `develop` for the first time today; nobody has read the outcome, and
+  `db`'s `pg_prove` step has still never run on a real runner.
 - Prompt-injection resistance of the three agents against hostile document
-  content. Out of scope for this audit, and worth its own pass.
+  content. Out of scope for the audit, and worth its own pass before real
+  applicants' files arrive.
