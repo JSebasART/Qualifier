@@ -111,17 +111,23 @@ select '# P9 attempt: ' || pg_temp.attempt('e0000000-0000-0000-0000-00000000000c
 select is((select count(*) from documents where application_id = 'f0000000-0000-0000-0000-000000000004'), 0::bigint,
   'P9 a document cannot be attached to another tenant''s application');
 
--- P10/P11 — the case screen's own writes, in the exact shape case-detail.tsx sends.
+-- P10/P11 — the case screen's decision, and the note saved with it.
+--
+-- Rewritten on 2026-09-12, when the fix landed. These two used to send exactly
+-- what case-detail.tsx sent: direct inserts into audit_log and case_comments,
+-- carrying no tenant_id, which RLS rejected every time while the screen showed
+-- the decision as saved. The screen now calls decide_case(), so the probe calls
+-- what the screen calls. The assertion is unchanged in substance: after an
+-- underwriter decides a case, the decision and the note are on the record.
 select '# P10 attempt: ' || pg_temp.attempt('e0000000-0000-0000-0000-00000000000b',
-  $$insert into audit_log (actor_id, actor_type, action, entity_type, entity_id, metadata)
-    values ('e0000000-0000-0000-0000-00000000000b', 'underwriter', 'case.approved', 'case', 'e0000000-0000-0000-0000-000000000005', '{"application_id": "e0000000-0000-0000-0000-000000000004"}')$$);
-select is((select count(*) from audit_log where entity_id = 'e0000000-0000-0000-0000-000000000005' and action = 'case.approved'), 1::bigint,
-  'P10 the case screen''s decision audit insert is recorded');
-select '# P11 attempt: ' || pg_temp.attempt('e0000000-0000-0000-0000-00000000000b',
-  $$insert into case_comments (case_id, author_id, body)
-    values ('e0000000-0000-0000-0000-000000000005', 'e0000000-0000-0000-0000-00000000000b', 'nota')$$);
+  $$select decide_case('e0000000-0000-0000-0000-000000000005', 'approved', 'Documentación completa.')$$);
+select is((select count(*) from audit_log
+            where entity_id = 'e0000000-0000-0000-0000-000000000005'
+              and action = 'case.approved'
+              and actor_id = 'e0000000-0000-0000-0000-00000000000b'), 1::bigint,
+  'P10 the case screen''s decision is recorded in the audit log, against the underwriter who made it');
 select is((select count(*) from case_comments where case_id = 'e0000000-0000-0000-0000-000000000005'), 1::bigint,
-  'P11 the case screen''s comment insert is recorded');
+  'P11 the note saved with the decision is recorded');
 
 -- P12 — what an anonymous caller (the public anon key) can list.
 select is(pg_temp.count_as(null,

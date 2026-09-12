@@ -1,35 +1,33 @@
-# Status — verified 2026-09-11
+# Status — verified 2026-09-12
 
-Measured against the running services, the production database (read only)
-and the repos, not inferred from documents. Checks ran on 2026-09-11 from
-20:12 UTC (the afternoon in El Salvador).
+Measured against the running services, the production database (read only) and
+the repos. Service checks ran 2026-09-11 from 20:12 UTC; nothing has been
+deployed since, so they still describe production. The code checks below ran on
+2026-09-12.
 
-**Headline.** Production is healthy and unchanged since the 2026-09-10
-promotion, and nobody has used it. There has been one staff sign-in and no
-application has been processed, so `BLK-5` is still open. Today's work is
-committed on `develop` in four repos but **not pushed**:
+**Headline.** Production is unchanged since the 2026-09-10 promotion and has
+still processed nothing (`BLK-5` is open). Six commits now sit on `develop`,
+**unpushed**, carrying the 2026-09-11 audit's fixes: every critical, high and
+medium finding. Production therefore still has all of them, including a
+Next.js version with two critical RCE advisories.
 
-- a Next.js upgrade out of two critical RCE advisories, which production is
-  still exposed to;
-- dependency patches for both Fastify services;
-- a `db` CI that had been red since 2026-07-31.
-
-An audit the same day found that RLS isolates tenants' *reads* but not their
-writes or their roles. It found one critical and three high findings, all in
-the database policies and the case screen (§ 4).
+**The next action has an order that is not optional.** The database migration
+`20260911000000` must be applied *before* the new `web` build is promoted. The
+case screen now calls functions that migration creates; with the migration but
+without the build, the old direct writes are refused.
 
 ## 0. How we got here
 
 - **2026-09-06** — this file said the Supabase project had been deleted and
-  every pin was current. Both were wrong. The project was *paused* (a paused
-  project stops resolving and its pooler answers "tenant not found", exactly
-  like a deleted one), and pins had only been compared with `main`, missing a
-  `develop` branch 27 commits ahead.
-- **2026-09-10** — the project was restored with all data intact. Render's
-  environment was re-entered from `qualifier-secrets.env.txt`, and `develop` was
-  fast-forwarded into `main` in all five repos and deployed.
-- **2026-09-11** — re-verified, housekeeping done on `develop`, and the whole
-  project audited.
+  every pin was current. Both were wrong. The project was *paused*, and pins had
+  only been compared with `main`, missing a `develop` branch 27 commits ahead.
+- **2026-09-10** — the project was restored with all data intact, Render's
+  environment re-entered from the secrets file, and `develop` promoted to `main`
+  in all five repos.
+- **2026-09-11** — re-verified; dependency patches and a `db` CI fix committed;
+  the whole project audited (§ 4).
+- **2026-09-12** — the audit's critical, high and medium findings fixed and
+  re-audited. Nothing pushed.
 
 ## 1. Services
 
@@ -39,112 +37,108 @@ the database policies and the case screen (§ 4).
 | `qualifier-ai-orchestrator` | `5b57702` | 2026-09-11 00:57 | `/health` 200; `/health/queue` `ok`, three queues empty, `dead_letter` 0 |
 | `qualifier-web` | `5d7d8de` | 2026-09-11 00:57 | 200 |
 
-- All three answered after a cold start of about 12 s. No error or warning log
-  lines since the deploys.
-- The orchestrator spun down at 01:14 UTC and stayed down until the 20:12 probe,
-  so nothing used it in between. The grading engine's only `/score` call all
+- All three answered after a cold start of about 12 s, with no error or warning
+  log lines since the deploys.
+- The orchestrator spun down at 01:14 UTC and stayed down until the 20:12 probe.
+  Nothing used it in between, and the grading engine's only `/score` call all
   day was that probe.
-- Unauthenticated POSTs: `/api/documents/…/extract` and `/api/users` answer
-  401, as they should. `/api/playbooks/test` forwards to the grading engine
-  (audit `M1`).
+- Production still answers an unauthenticated `POST /api/playbooks/test` by
+  forwarding it to the grading engine (audit `M1`), because the fix is not
+  deployed.
 
 ## 2. Repositories
 
-`main` equals the umbrella's pins and is what is deployed. `develop` is ahead by
-one local, unpushed commit in four repos.
+`main` equals the umbrella's pins and is what is deployed. `develop` is ahead in
+all five repos, all of it local.
 
-| Repo | `main` (pinned, deployed) | `develop` (local) | What it adds |
+| Repo | `main` (deployed) | `develop` (local) | What it adds |
 | --- | --- | --- | --- |
-| `docs` | `ce31b99` | = `main` | — |
-| `db` | `b522794` | `3c96a75` | CI fixed: real `auth.users` stub columns, pgcrypto, `pg_prove` over every suite, runs on `develop` |
-| `grading-engine` | `891a435` | `dbc40a1` | fastify 5.12.4, fast-uri |
-| `ai-orchestrator` | `5b57702` | `f6c7a3a` | fastify 5.12.4, fast-uri |
-| `web` | `5d7d8de` | `2c6b73e` | Next.js 16.3.5 (GHSA-2xp9-vwfh-vxw4, GHSA-p293-qw3h-jr36), sharp, postcss |
+| `db` | `b522794` | `66208c2` | CI fix (2026-09-11), then the write-authorization migration and its 38-assertion suite |
+| `web` | `5d7d8de` | `9d65674` | Next.js 16.3.5, then case decisions through RPCs, the playbook-test route authenticated, security headers |
+| `ai-orchestrator` | `5b57702` | `afee9ce` | fastify patch, then tenant assertions, resumable processing, escalation model, CI on `develop` |
+| `grading-engine` | `891a435` | `f9320bc` | fastify patch, then CI on `develop` |
+| `docs` | `ce31b99` | `5a5baa3` | CI on `develop` |
 
-How each was verified:
+Verification on 2026-09-12:
 
-- **Fastify services:** typecheck plus tests, 63 in ai-orchestrator and 51 in
-  grading-engine.
-- **`web`:** typecheck, lint and a production build.
-- **Dependencies:** `npm audit` is clean for the production tree of all three
-  Node services. What remains is vitest's dev-only tree (audit `L1`).
-- **`db` CI:** replayed step by step against PGlite. Before the fix it fails at
-  `column "instance_id" of relation "users" does not exist`; after it, both
-  suites pass (41/41). The fix has not yet run on a GitHub runner.
-
-Promoting deploys every changed service. See RUNBOOK.md § "Promote develop to
-main".
+- **`db`:** the CI workflow replayed step by step against PGlite — 79 assertions
+  across three pgTAP suites, all passing (31 read isolation, 38 write
+  authorization, 10 publish).
+- **`ai-orchestrator`:** typecheck, 70 tests (63 before).
+- **`grading-engine`:** typecheck, 51 tests.
+- **`web`:** typecheck, lint, production build. The built app was then run
+  locally and probed: `/api/playbooks/test` answers 401 unauthenticated, and all
+  six security headers are present.
+- **The audit's twelve probes:** 12 of 12 pass against the fixed schema, each
+  refused by a named mechanism (column privileges, revoked grants, composite
+  foreign keys).
 
 ## 3. The database — `jskuoazhcgfyetxrmxyi`
 
-Production, and the only project. Up and not paused. Contents are unchanged
-from the demo portfolio seeded on 2026-08-18:
+Production, and the only project. Up, not paused, and **still on the old
+schema** — `20260911000000` has not been applied. Contents are unchanged from
+the demo portfolio seeded on 2026-08-18:
 
 - two tenants, `seguros` and `medico`, each with one published v1 playbook;
 - 14 clients, 15 applications, 11 cases, 28 documents, 11 scores;
 - 11 audit entries, all seeded `system application.scored`;
-- 9 staff profiles and 11 auth users;
+- 9 staff profiles and 11 auth users, one sign-in since the promotion
+  (2026-09-11 02:11 UTC);
 - `ai_usage` 0, pg-boss jobs 0.
 
-Other checks:
+Every constraint the new migration adds is already satisfied by this data: no
+cross-tenant references, no duplicate open cases, every storage path inside its
+own application's folder, and only the superadmin without a tenant.
 
-- **Sign-ins:** one since the promotion, at 2026-09-11 02:11 UTC.
-- **Schema:** every public table has RLS on and at least one policy. The
-  documents bucket is private, capped at 5 MB, and allowlists MIME types. Views
-  run as `security_invoker`.
-
-## 4. Audit — 2026-09-11
+## 4. Audit — found 2026-09-11, fixed 2026-09-12
 
 Full report: [`audit/2026-09-11-report.html`](audit/2026-09-11-report.html).
-The twelve probes are in [`audit/2026-09-11-probes.sql`](audit/2026-09-11-probes.sql),
-ready to move into `db`'s pgTAP suite as each fix lands. Findings were reproduced against the repo's migrations in a local
-Postgres 17 replay, with twelve probes. Production's policies were read from
-its catalog and match the repo's. Nothing was attempted against production.
+The twelve probes are [`audit/2026-09-11-probes.sql`](audit/2026-09-11-probes.sql);
+their durable form is now `db`'s `write_authorization_test.sql`, which runs on
+every push.
 
-- **C1 (critical)** — a `tenant_admin` can promote themselves to `superadmin`
-  through their own `profiles` row, and then read and write every tenant. The
-  policy's check reads the pre-update role.
-- **H1** — underwriters can insert `scores`, including into another tenant.
-- **H2** — an `agent` can approve applications and resolve cases. Decision
-  authority exists only in React.
-- **H3** — the case screen's audit entries and comments are rejected by RLS
-  (they omit `tenant_id`), and the UI ignores the error. No decision made in the
-  UI has ever reached `audit_log`.
-- **Medium:**
-  - `M1` — the playbook-test proxy is unauthenticated.
-  - `M2` — the pipeline follows cross-tenant pointers.
-  - `M3` — the anon key can list every tenant's products.
-  - `M4` — staff can forge `system` audit entries.
-  - `M5` — processing isn't idempotent.
-  - `M6` — CI runs only on `main` in four repos.
-  - `M7` — the web app sends no security headers.
-  - `M8` — the escalation model is retired.
-- **Low:** `L1` vitest dev advisories, `L2` `/analyze` live in production,
-  `L3` pgTAP installed in production.
+RLS isolated tenants' reads and almost nothing else. Twelve probes, all failing.
+**Twelve of the fifteen findings are fixed** (every critical, high and medium);
+the three left are low.
+
+| | Finding | State |
+| --- | --- | --- |
+| `C1` | a tenant admin could promote themselves to superadmin | fixed — column privileges, `set_staff_role()` |
+| `H1` | underwriters could write scores, including into another tenant | fixed — policy dropped, grants revoked |
+| `H2` | an agent could approve applications and resolve cases | fixed — role-checked RPCs own the transitions |
+| `H3` | no decision had ever reached `audit_log` | fixed — the RPCs write it, from `auth.uid()` |
+| `M1` | the playbook-test route answered anyone | fixed — staff session required, body capped |
+| `M2` | the pipeline followed cross-tenant pointers | fixed — composite FKs, plus read-time assertions |
+| `M3` | the anon key could list every tenant's products | fixed — leftover policy dropped |
+| `M4` | staff could forge `system` audit entries | fixed — insert revoked |
+| `M5` | re-running an application duplicated score, case and spend | fixed — resumable, with a unique open-case index |
+| `M6` | CI ran only on `main` in four repos | fixed — `develop` added everywhere |
+| `M7` | no security headers | fixed — headers added, CSP report-only |
+| `M8` | the escalation model was retired | fixed — `claude-sonnet-5` in the blueprint |
+| `L1` `L2` `L3` | vitest dev advisories, `/analyze` live in production, pgTAP installed in production | open |
 
 ## 5. Open issues and risks
 
-1. **Production runs Next.js 16.2.12** until `develop` is pushed and promoted.
-2. **Audit C1 and H1–H3.** Fix them before real data, and before the demo's
-   final beat: an underwriter's decision that today leaves no record.
+1. **Nothing is deployed.** Production runs the old code, with every finding
+   above still live, including Next.js 16.2.12's critical advisories.
+2. **Deploy order.** Migration first, then promote. See the headline.
 3. **`BLK-5`: no application has gone through the deployed pipeline.** The
    Spanish narrative has never been observed.
-4. **Models.** `render.yaml` still declares the retired `claude-opus-4-1` for
-   escalation. The secrets file still says `MODEL_DEFAULT=claude-sonnet-5`,
-   which the default token budget can't carry.
-5. **One Supabase project, and it is production** (`BLK-4`). It is idle enough
-   to pause again.
+4. **`MODEL_DEFAULT`.** The secrets file still says `claude-sonnet-5`, which the
+   default path's 2048-token budget can't carry. Render runs
+   `claude-sonnet-4-5`; keep it.
+5. **One Supabase project, and it is production** (`BLK-4`). Idle enough to
+   pause again.
 6. **Nothing watches it** (`NEG-2`).
 7. **`render-blocks.env` is still on disk.** An automated delete was blocked;
-   delete it by hand. Everything in it is in the secrets file or is a public
-   URL.
+   delete it by hand. Everything in it is in the secrets file or is a public URL.
 
 ## 6. Not verified
 
 - Signing in to the web app. That needs staff credentials, which were not used.
-- GitHub Actions results. The repos are private and there is no `gh` CLI here.
-  That is how `db` stayed red for six weeks unnoticed. Its fix needs its first
-  real run, to prove the apt package that provides `pg_prove`.
-- The Supabase MCP connector refused queries with a permission error. The
-  database was read with a read-only script instead, and the connection string
-  was never printed.
+- GitHub Actions results — private repos, no `gh` CLI here. The `db` fix needs
+  its first real run, which is also the only thing the local replay cannot
+  exercise: the apt package that provides `pg_prove`.
+- The new RPCs against production, since the migration is not applied there.
+- Prompt-injection resistance of the three agents against hostile document
+  content. Out of scope for this audit, and worth its own pass.

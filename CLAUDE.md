@@ -95,14 +95,17 @@ These are load-bearing decisions, each one already paid for once.
 - **Published playbook versions are immutable**, enforced by a database trigger,
   not just by the UI. Publication goes through the `publish_playbook()` RPC so
   archive-old + publish-new is one transaction.
-- **RLS is the real security boundary.** Route protection in `web` is
-  client-side only. Every table carries `tenant_id`, and
-  `db/supabase/tests/database/rls_isolation_test.sql` (31 assertions) proves
-  *read* isolation. It has actually run in CI only since `db` `3c96a75`
-  (2026-09-11); before that the step could not pass. The same day's audit found
-  that the policies do not guard roles or tenants on *writes* (STATUS.md § 4).
-  Do not add a table without an RLS policy and a test, and write the test from
-  the attacker's side: an assertion that a role *cannot* do something.
+- **The database is the security boundary, and it takes three mechanisms.**
+  Route protection in `web` is client-side only. RLS decides which *rows* a
+  caller may touch — `rls_isolation_test.sql` (31 assertions) proves that read
+  isolation holds. It cannot decide *columns*, which is why `role` and
+  `tenant_id` are closed with column privileges instead, and it cannot express a
+  *transition*, which is why deciding a case goes through `decide_case()` and
+  its siblings rather than an UPDATE. `write_authorization_test.sql` (38
+  assertions) covers that side, and both run in CI only since `db` `3c96a75`
+  (2026-09-11) — before that the step could not pass at all. Do not add a table
+  without an RLS policy and a test, and write the test from the attacker's side:
+  an assertion that a role *cannot* do something.
 - **The service-role key bypasses RLS and must never reach a browser.** In `web`
   it is reachable only through `src/lib/service-client.ts`, marked `server-only`
   so a client-side import is a build error.

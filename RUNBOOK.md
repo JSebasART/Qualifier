@@ -204,6 +204,26 @@ application, upload a document, and watch a job move through:
 
 If `ready` climbs and never falls, nothing is consuming the queue.
 
+## Apply a migration
+
+Render deploys code; nothing applies migrations for you. Production's ledger
+records them under apply-time versions, so its names will not match the files —
+compare content, not names.
+
+```bash
+cd db && npx supabase link --project-ref jskuoazhcgfyetxrmxyi && npm run db:push
+```
+
+**A migration that changes who may write what has to go out before the `web`
+build that depends on it.** `20260911000000` is the example: it creates
+`decide_case()` and its siblings, which the case screen now calls, and it
+revokes the direct writes the old screen used. Migration first, then promote —
+in the other order, every decision fails.
+
+Before applying one that adds a constraint, check production satisfies it
+already. A read-only query beats an apply-and-see: a failed migration on a
+project with no dev environment (`BLK-4`) is a bad afternoon.
+
 ## Rebuild the database from zero
 
 For a new dev or demo project (`BLK-4`), or disaster recovery.
@@ -250,8 +270,9 @@ cd ai-orchestrator && npm test
 cd db && npm run db:test
 ```
 
-As of 2026-09-10: grading-engine 4 test files and ai-orchestrator 9, all
-passing. `web` has no tests (`CAL-3`); its production build is the strongest
+As of 2026-09-12: grading-engine 51 tests, ai-orchestrator 70, and `db` 79
+pgTAP assertions across three suites — read isolation, write authorization, and
+publish. `web` has no tests (`CAL-3`); its production build is the strongest
 check available there:
 
 ```bash
