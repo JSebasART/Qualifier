@@ -1,0 +1,936 @@
+<title>Qualifier Web Audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+  :root {
+    --bg: #F3F5F7;
+    --surface: #FFFFFF;
+    --ink: #172128;
+    --muted: #56636B;
+    --rule: #D5DBE0;
+    --accent: #24527A;
+    --code-bg: #E9EDF1;
+    --critical: #A4231B;
+    --high: #B04F0C;
+    --medium: #7E6100;
+    --low: #4D6570;
+    --fixed: #2B6E45;
+    --display: "IBM Plex Sans Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+    --body: "Source Serif 4", "Iowan Old Style", Georgia, "Times New Roman", serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+    --step--1: 0.8125rem;
+    --step-0: 1.0625rem;
+    --step-1: 1.25rem;
+    --step-2: 1.625rem;
+    --step-3: 2.5rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0F1417;
+      --surface: #161D22;
+      --ink: #E1E7EB;
+      --muted: #97A4AD;
+      --rule: #29333B;
+      --accent: #8DB6DD;
+      --code-bg: #1B242A;
+      --critical: #F28B80;
+      --high: #F0A46E;
+      --medium: #DCC05A;
+      --low: #9FB4BE;
+      --fixed: #7CC897;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F1417;
+    --surface: #161D22;
+    --ink: #E1E7EB;
+    --muted: #97A4AD;
+    --rule: #29333B;
+    --accent: #8DB6DD;
+    --code-bg: #1B242A;
+    --critical: #F28B80;
+    --high: #F0A46E;
+    --medium: #DCC05A;
+    --low: #9FB4BE;
+    --fixed: #7CC897;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: var(--step-0);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 62rem; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
+  h1, h2, h3 {
+    font-family: var(--display);
+    font-weight: 600;
+    line-height: 1.15;
+    text-wrap: balance;
+    margin: 0;
+  }
+  h1 { font-size: var(--step-3); letter-spacing: -0.01em; }
+  h2 { font-size: var(--step-2); padding-top: 2.75rem; border-top: 1px solid var(--rule); }
+  h3 { font-size: var(--step-1); font-weight: 600; }
+  p { margin: 0; max-width: 65ch; }
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code, .mono { font-family: var(--mono); font-size: 0.86em; }
+  code {
+    background: var(--code-bg);
+    padding: 0.08em 0.35em;
+    border-radius: 3px;
+    overflow-wrap: anywhere;
+  }
+  .label {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: var(--step--1);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  header { display: grid; gap: 1.25rem; padding-bottom: 2.5rem; }
+  .thesis { font-size: var(--step-1); line-height: 1.45; max-width: 48ch; }
+  .tally {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    font-family: var(--display);
+    font-size: var(--step-0);
+    font-variant-numeric: tabular-nums;
+  }
+  .tally span { display: inline-flex; align-items: baseline; gap: 0.4rem; }
+  .tally b { font-size: var(--step-2); font-weight: 600; line-height: 1; }
+  .sev-blocker { color: var(--critical); }
+  .sev-high { color: var(--high); }
+  .sev-medium { color: var(--medium); }
+  .sev-low { color: var(--low); }
+  .sev-fixed { color: var(--fixed); }
+  .scope {
+    color: var(--muted);
+    font-size: var(--step--1);
+    font-family: var(--display);
+    letter-spacing: 0.02em;
+    max-width: 70ch;
+  }
+
+  section { display: grid; gap: 1.5rem; }
+  section + section { margin-top: 3rem; }
+  .intro { color: var(--muted); }
+
+  .headline {
+    display: grid;
+    gap: 0.6rem;
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    padding: 1.4rem 1.6rem;
+  }
+  .headline ol { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.55rem; }
+  .headline li { max-width: 62ch; }
+  .headline .num { font-family: var(--mono); font-size: 0.86em; color: var(--muted); }
+
+  .finding {
+    display: grid;
+    grid-template-columns: 9.5rem minmax(0, 1fr);
+    gap: 0 2rem;
+    padding: 1.75rem 0;
+    border-top: 1px solid var(--rule);
+  }
+  .finding:first-of-type { border-top: 0; padding-top: 0.5rem; }
+  .margin { display: flex; flex-direction: column; gap: 0.15rem; padding-top: 0.2rem; }
+  .margin .id { font-family: var(--mono); font-size: var(--step--1); color: var(--muted); }
+  .margin .sev {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: var(--step--1);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .margin .ticket {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    padding-top: 0.3rem;
+  }
+  .margin .surface {
+    font-family: var(--display);
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .body { display: grid; gap: 0.85rem; min-width: 0; }
+  .body h3 { font-size: var(--step-1); }
+  .body h4 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: var(--step--1);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0.25rem 0 -0.4rem;
+  }
+  .evidence {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 0.75rem 0.9rem;
+    margin: 0;
+    overflow-x: auto;
+    white-space: pre;
+    max-width: 100%;
+  }
+  .evidence .no { color: var(--critical); }
+  .evidence .yes { color: var(--fixed); }
+  .evidence .dim { color: var(--muted); }
+
+  .tablewrap { overflow-x: auto; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: var(--step--1); }
+  caption {
+    text-align: left;
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: var(--step--1);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0.9rem 1rem 0.5rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-family: var(--display);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  td.mono { font-family: var(--mono); font-size: 0.8125rem; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: 0; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .scorecard td.grade { font-family: var(--display); font-weight: 600; white-space: nowrap; }
+
+  footer {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--rule);
+    color: var(--muted);
+    font-size: var(--step--1);
+    display: grid;
+    gap: 0.8rem;
+  }
+  footer p { max-width: 70ch; }
+
+  @media (max-width: 46rem) {
+    .finding { grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
+    .margin { flex-direction: row; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+    h1 { font-size: var(--step-2); }
+  }
+</style>
+
+<div class="page">
+<header>
+  <p class="label">Qualifier &middot; audit &middot; 2026-09-12</p>
+  <h1>The staff workspace, screen by screen</h1>
+  <p class="thesis">The security audit a day earlier closed the write side of the database. This one is about the other half: what the product actually lets a person do, and where it stops short of the job it claims to do.</p>
+  <div class="tally">
+    <span class="sev-blocker"><b>4</b> blocker</span>
+    <span class="sev-high"><b>14</b> high</span>
+    <span class="sev-medium"><b>25</b> medium</span>
+    <span class="sev-low"><b>4</b> low</span>
+  </div>
+  <p class="scope">Scope: <code>qualifier-web</code> at <code>3b40927</code>, all 7 pages, 4 API routes, 12 components and 9 lib modules, read in full; the <code>profiles</code> schema and user-management RPCs in <code>qualifier-db</code> at <code>66208c2</code>; and the live site at <code>qualifier-web.onrender.com</code>, unauthenticated. No credentials were used and nothing was written. Identifiers are <code>UX-n</code>; where a finding is already owned by a ticket in <code>docs/product-gap-analysis.md</code> the margin says so.</p>
+</header>
+
+<section>
+  <div class="headline">
+    <p class="label">If you fix five things</p>
+    <ol>
+      <li><b>Make the pipeline visible while it runs (UX&#8209;7).</b> Every mutation is followed by a refetch that executes before the background job it just queued could possibly have finished, under a notice that promises the opposite. The demo will expose this in the first three minutes.</li>
+      <li><b>Let the underwriter open the document (UX&#8209;10).</b> Today they approve or decline having seen extracted fields and a confidence number, never the DUI itself.</li>
+      <li><b>Build real user management (UX&#8209;1).</b> The screen is create-only. A departing employee's account cannot be revoked through the product at all — and <code>set_staff_role()</code>, with every guard and its audit row already written, has zero callers.</li>
+      <li><b>Show the audit trail (UX&#8209;20).</b> Every decision is recorded server-side and no screen reads it. The regulatory selling point is invisible to the people who would be audited.</li>
+      <li><b>Stop swallowing query errors (UX&#8209;24, UX&#8209;25).</b> A failed documents query on the case screen renders as "no documents uploaded". There is no error boundary anywhere.</li>
+    </ol>
+  </div>
+</section>
+
+<section>
+  <h2>Where each screen stands</h2>
+  <p class="intro">Graded on whether a real underwriting team could run a working day on it, not on code quality. Both detail screens are stronger than their list screens; the case queue — the screen the whole product funnels into — is the weakest thing in the app.</p>
+  <div class="tablewrap">
+    <table class="scorecard">
+      <caption>Seven screens</caption>
+      <thead>
+        <tr><th>Screen</th><th>Grade</th><th>What holds it back</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">/clients</td><td class="grade sev-fixed">Strong</td><td>Search, five-column sort, status pills, bulk status change, CSV export, two distinct empty states. The reference for every other list. Missing: pagination, URL-persisted state, keyboard row access.</td></tr>
+        <tr><td class="mono">/applications/[id]</td><td class="grade sev-fixed">Strong</td><td>Requirement progress that mirrors the engine's own predicate, explicit blocked and indeterminate states, a recovery path for "submitted but never scored". Missing: document preview, delete, upload progress.</td></tr>
+        <tr><td class="mono">/clients/[id]</td><td class="grade sev-medium">Fair</td><td>Correct <code>&lt;dl&gt;</code> semantics, real <code>mailto:</code>/<code>tel:</code> links, 23505 translated by hand. Three sequential query stages; no change history.</td></tr>
+        <tr><td class="mono">/applications</td><td class="grade sev-medium">Fair</td><td>Search and status filter, but no sort, no pagination, no bulk, no export. Pulls <code>form_data</code> for every row and never renders it. The create form wipes itself on a pipeline failure.</td></tr>
+        <tr><td class="mono">/dashboard</td><td class="grade sev-medium">Fair</td><td>The pipeline bar is the best-annotated element in the app. But four counters computed by pulling three whole tables, and one failing query leaves skeletons forever.</td></tr>
+        <tr><td class="mono">/register</td><td class="grade sev-high">Weak</td><td>Create-only. Four columns of text, no row actions, no email column, no search. English empty state in a Spanish product.</td></tr>
+        <tr><td class="mono">/cases</td><td class="grade sev-blocker">Weakest</td><td>No search, filter, sort or pagination. The row carries no client name, product or reference — the only way in is the status badge. Bare <code>&lt;p&gt;</code> for loading, empty and error; assignment gives no feedback at all.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>A. User management</h2>
+  <p class="intro">The half you named. The database side was built properly in the 2026-09-11 migration and then never connected to a screen.</p>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-1</span><span class="sev sev-blocker">Blocker</span><span class="surface">/register</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>User management is create-only, and there is no way to revoke an account</h3>
+      <p>The nav item says <b>Usuarios</b>. The screen behind it lists four columns of plain text — name, role, company, date added — and each <code>&lt;tr&gt;</code> contains nothing else. There is no role change, no deactivate, no delete, no rename, no tenant move, no password reset, no resend invite. The only write on the page is "create".</p>
+      <p>The database is not the problem. <code>set_staff_role()</code> exists with every guard you would want: administrator-only, a role allowlist that excludes <code>applicant</code>, a rule that only a superadmin may grant or revoke superadmin, a tenant check for <code>tenant_admin</code> callers, and an <code>audit_log</code> row on success. It has <b>zero callers in <code>web</code></b>. The five RPCs the app does call are <code>assign_case</code>, <code>publish_playbook</code>, <code>submit_application</code>, <code>decide_case</code> and <code>request_case_info</code>.</p>
+      <h4>What this costs</h4>
+      <p>An employee leaves. Their account keeps working. There is no <code>is_active</code> column to flip, no delete in the product, and demoting them — once that is even wired — still leaves them able to sign in and read the whole tenant's client portfolio, because every staff role can reach <code>/clients</code>. Removing them today means the Supabase dashboard.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">web/src/app/(dashboard)/register/page.tsx:164-170   <span class="dim">four &lt;td&gt;s, no actions</span>
+web/src/app/api/users/route.ts:50                  <span class="no">POST only — no GET/PATCH/DELETE</span>
+db/…/20260911000000_write_side_authorization.sql:50-99
+                                                   <span class="yes">set_staff_role() — complete</span>
+grep -r "set_staff_role" web/src                   <span class="no">0 matches</span></pre>
+      <h4>Fix</h4>
+      <p>Wire <code>set_staff_role</code> to a role select on each row, then add the column the schema is missing: <code>profiles.is_active boolean not null default true</code>, enforced in <code>useStaffSession</code> and — the part that matters — in RLS, so an inactive account cannot read rows even with a valid JWT. Deactivation belongs in a <code>set_staff_active()</code> function alongside its siblings, not in an <code>UPDATE</code>, for the same reason deciding a case does.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-2</span><span class="sev sev-blocker">Blocker</span><span class="surface">/register, /</span><span class="ticket">BLK-6</span></div>
+    <div class="body">
+      <h3>No password reset, no invitation — an admin types the password and hands it over</h3>
+      <p>The screen admits it in its own copy: <i>"Compártela por otro medio — todavía no hay correo de recuperación."</i> Account creation calls <code>createUser</code> with <code>email_confirm: true</code>, so not even a confirmation mail goes out. The login page has no "forgot password" link — confirmed on the live site. <code>resetPasswordForEmail</code> and <code>inviteUserByEmail</code> appear nowhere in the repo, and <code>supabase/config.toml</code>'s <code>[auth]</code> block has no <code>[auth.email]</code> section, no SMTP and no templates.</p>
+      <p>This is the finding that fails a B2B security review first, and it is already on the roadmap as <code>BLK-6</code>. Worth restating only because it shares its one missing piece — an email provider — with <code>FUN-3</code>, and because <code>UX-1</code> is much less useful without it: you can add a user, but not help them when they lose the password you typed for them.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">web/src/app/api/users/route.ts:110    email_confirm: <span class="no">true</span>
+web/src/app/(dashboard)/register/page.tsx:218-221
+db/supabase/config.toml:17-22         <span class="no">[auth] with no [auth.email]</span>
+live /                                <span class="no">no recovery link in the form</span></pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-3</span><span class="sev sev-high">High</span><span class="surface">api/users</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>Creating a user writes no audit row</h3>
+      <p>The route holds the service-role key — the one caller in the app that could write to <code>audit_log</code> after the 2026-09-11 migration revoked <code>insert</code> from <code>authenticated</code> — and it never references the table. There is no <code>user.created</code> event, no <code>user.deleted</code>, no <code>login.succeeded</code> or <code>login.failed</code>.</p>
+      <p>There is a second hole waiting behind it. <code>set_staff_role</code> writes its audit row only when the resulting tenant is non-null, so once <code>UX-1</code> is wired, <i>demoting a superadmin is the one role change that leaves no trace</i> — exactly the change most worth recording.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">web/src/app/api/users/route.ts        <span class="no">no reference to audit_log</span>
+db/…/20260911000000:91                if v_tenant is not null then  <span class="no">← skips the superadmin case</span></pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-4</span><span class="sev sev-high">High</span><span class="surface">/tenants/[id]</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>The company page shows a company's branding and products, but not its people</h3>
+      <p><code>tenant-detail.tsx</code> queries exactly two tables, <code>tenants</code> and <code>products</code>. It never touches <code>profiles</code>. So a superadmin looking at an insurer sees its accent colour, its logo and its product list, and has no way to learn who works there — that lives on a separate page named after a verb. There is no member count on the tenants list either.</p>
+      <p>This is where <code>UX-1</code>'s controls should land: staff belong to the tenant page, scoped by the tenant you are already looking at, which also removes the need for the "Empresa" column and makes a superadmin's cross-tenant view coherent instead of one flat list of everyone.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">web/src/components/admin/tenant-detail.tsx:53-59   <span class="dim">tenants + products only</span>
+grep -n "profiles" tenant-detail.tsx               <span class="no">0 matches</span></pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-5</span><span class="sev sev-medium">Medium</span><span class="surface">api/users</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>A superadmin's <code>tenant_id</code> is taken on trust</h3>
+      <p>When the caller is a superadmin the route uses <code>body.tenant_id</code> verbatim, checking only that it is present. Nothing verifies it names a real tenant; the foreign key is the only backstop, and the failure it produces arrives as a raw Postgres message. There is also no email-format check (the browser's <code>type="email"</code> is the whole validation), no duplicate pre-check — the script beside it does that lookup properly and explains why — and no rate limit on a route that mints accounts.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">web/src/app/api/users/route.ts:93-97
+web/scripts/create-test-accounts.mjs:134-136  <span class="yes">"createUser's duplicate error … is not part of any API contract"</span></pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-6</span><span class="sev sev-medium">Medium</span><span class="surface">/register</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>The user table cannot show an email, and its name column is often one anyway</h3>
+      <p><code>full_name</code> falls back to the email address when the admin leaves it blank, so the single human-readable column frequently holds an address — while the real address cannot be displayed at all, because it lives in <code>auth.users</code>, which the browser cannot read. The result is a staff list you cannot search by the identifier people actually use to sign in.</p>
+      <p>The clean fix is a <code>profiles.email</code> column mirrored on creation, which also makes assignee dropdowns and comment attribution legible. The cheap fix is to make <code>full_name</code> required in the form.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">web/src/app/api/users/route.ts:124   full_name: fullName || email
+web/src/app/(dashboard)/register/page.tsx:153-172  <span class="dim">no email column</span></pre>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>B. The pipeline is invisible while it runs</h2>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-7</span><span class="sev sev-blocker">Blocker</span><span class="surface">all screens</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>Nothing tells the UI the background work finished — and the copy says it will</h3>
+      <p>There is no realtime subscription, no polling and no revalidation anywhere in the app: zero occurrences of <code>channel(</code>, <code>postgres_changes</code>, <code>setInterval</code> or <code>router.refresh</code>. Every mutation is followed by a single <code>await load()</code> that runs <i>immediately</i> — before the job it just enqueued could have started, let alone finished.</p>
+      <p>The notices promise otherwise, in Spanish, to the user's face:</p>
+      <pre class="evidence">application-detail.tsx:250  "Extracción reencolada. El estado se actualiza aquí en cuanto corra."
+application-detail.tsx:257  await load();   <span class="no">← the only refresh, and it is now</span>
+
+application-detail.tsx:269  "En unos segundos una nueva reemplaza la de abajo"
+application-detail.tsx:275  await load();   <span class="no">← same</span>
+
+applications/page.tsx:201   "la puntuación está corriendo y el caso aparecerá en Casos en breve"
+applications/page.tsx:220   await load();   <span class="no">← same</span></pre>
+      <p>The user must reload by hand, and nothing on screen suggests it. On a free-tier Render worker with a cold start, the gap between the promise and the truth is around a minute.</p>
+      <h4>What this costs</h4>
+      <p>This is the demo-breaking one. The whole pitch is "upload documents, get back a scored case" — and the moment that happens is the moment the screen goes quiet and stays quiet. It also makes the case queue wrong for anyone who leaves it open: a case created by the pipeline never appears.</p>
+      <h4>Fix</h4>
+      <p>Supabase realtime on <code>documents</code>, <code>scores</code> and <code>cases</code>, filtered by the row you are looking at, is the direct answer and RLS already scopes it correctly. A poll with backoff while any document is <code>pending</code> or <code>processing</code> is the cheaper one and would carry the demo. Either way the copy should stop promising something the code does not do.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-8</span><span class="sev sev-high">High</span><span class="surface">/applications/[id]</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>An underwriter cannot retry a failed extraction or rescore a case</h3>
+      <p>Both buttons are gated on <code>canUploadDocuments</code>, which is <code>tenant_admin</code> and <code>agent</code> only. The exclusion is deliberate and correct for its stated reason — a superadmin has no <code>tenant_id</code>, so the storage policy's <code>foldername[1] = current_tenant_id()::text</code> comparison can never match — but the gate was reused for two actions that touch no storage at all, and it caught the underwriter on the way past.</p>
+      <p>So the person who owns the decision, looking at a case stuck on a failed extraction, has no button. They have to find an agent.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">web/src/lib/roles.ts:59-61              canUploadDocuments = tenant_admin | agent
+web/src/components/applications/application-detail.tsx:489,569  <span class="no">rescore gated on canUpload</span>
+web/src/components/applications/application-detail.tsx:695      <span class="no">retry-extraction, same gate</span></pre>
+      <h4>Fix</h4>
+      <p>Split the predicate. <code>canUploadDocuments</code> keeps its storage meaning; a new <code>canReprocess</code> covers retry and rescore and includes <code>underwriter</code>. Both routes already authorise by RLS probe rather than by role, so nothing downstream changes.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-9</span><span class="sev sev-high">High</span><span class="surface">—</span><span class="ticket">FUN-5</span></div>
+    <div class="body">
+      <h3>The dead-letter queue is invisible from the product</h3>
+      <p>pg-boss retries five times with backoff and then drops the job in <code>dead_letter</code>. No screen reads it. A file that exhausts its retries leaves an application sitting in a state nobody is watching, and the only way to find out is <code>/health/queue</code> with a bearer token — an operator's tool, not a business one. Already owned by <code>FUN-5</code>; it belongs in the same piece of work as <code>UX-7</code> and <code>UX-8</code>, since all three are "the pipeline talks back".</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>C. The document itself</h2>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-10</span><span class="sev sev-blocker">Blocker</span><span class="surface">/applications/[id], /cases/[id]</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>Nobody can open the uploaded document</h3>
+      <p><code>storage_path</code> is written on upload and selected on read, and never rendered. There is no <code>createSignedUrl</code> and no <code>getPublicUrl</code> anywhere in <code>src</code> — no link, no thumbnail, no viewer, no download.</p>
+      <p>An underwriter therefore approves or declines a policy having seen the extracted fields, a per-field confidence percentage and an AI narrative, and never the DUI, the salary certificate or the medical report those were drawn from. When extraction is wrong — and the accuracy of extraction is, by the project's own gap analysis, the one thing that has never been measured — there is no way for a human to notice.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">application-detail.tsx:146   storage_path <span class="dim">selected</span>
+application-detail.tsx:319   storage_path <span class="dim">written</span>
+grep -rn "createSignedUrl\|getPublicUrl" web/src   <span class="no">0 matches</span></pre>
+      <h4>Fix</h4>
+      <p>A short-lived signed URL minted server-side. Do it in a route rather than from the browser, because that is also the natural place to write the <code>document.viewed</code> row that <code>SEC-2</code> asks for — the two are one piece of work, and doing the link from the browser now means doing it twice.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-11</span><span class="sev sev-high">High</span><span class="surface">/applications/[id]</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>A document cannot be deleted, replaced, or given the right type</h3>
+      <p>There is not a single <code>.remove(</code> or <code>.delete()</code> call in the codebase. Upload the payslip as <code>dui</code> and it is permanently a <code>dui</code>: the requirement indicator will go on reporting the real requirement unmet, the extractor will go on parsing it against the wrong schema, and the only remedy is to upload the same file again under the right type and leave the wrong row in place forever.</p>
+      <p>There is a related leak. If the storage upload succeeds and the <code>documents</code> insert then fails, the object stays in the bucket with no row pointing at it and no cleanup — the mirror image of the compensating <code>deleteUser</code> that <code>api/users</code> gets right.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">grep -rn "\.remove(\|\.delete()" web/src           <span class="no">0 matches</span>
+application-detail.tsx:308-326                     <span class="no">storage ok + insert fail = orphan</span>
+web/src/app/api/users/route.ts:130-133             <span class="yes">the pattern done right</span></pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-12</span><span class="sev sev-medium">Medium</span><span class="surface">/applications/[id]</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>Upload is one file at a time, with no progress, behind a flag that freezes the screen</h3>
+      <p><code>e.target.files?.[0]</code> — one file, no multi-select, no drag-and-drop. Progress is a single boolean, so there is no percentage and no per-file row; and because that boolean is shared, an upload in flight also disables every document's retry button and the rescore button. Registering an application with five required documents means five sequential uploads with the rest of the screen inert.</p>
+      <p>The validation around it is good and worth keeping: a 5&nbsp;MiB cap and a five-type allowlist checked client-side before the request, re-enforced by the storage policy, with a deliberate exception for files whose <code>type</code> the browser reports as empty.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">application-detail.tsx:619   e.target.files?.[0]
+application-detail.tsx:105   const [busy, setBusy]  <span class="no">← one flag for the whole section</span>
+application-detail.tsx:489,699                      <span class="no">disabled={busy}</span>
+web/src/lib/constants.ts:43-79                      <span class="yes">size + mime validation</span></pre>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>D. The case screen decides the money and is the least finished</h2>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-13</span><span class="sev sev-high">High</span><span class="surface">/cases/[id]</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>Approve and Decline are one click, irreversible, and unconfirmed</h3>
+      <p><code>decide_case</code> is a one-way transition — properly so, it is why the function exists — but the button in front of it has no confirmation step, no undo and no success message. The only feedback is the page quietly changing state.</p>
+      <p>The app has no dialog primitive at all: no <code>Dialog</code>, no <code>role="dialog"</code>, no <code>createPortal</code>, no focus trap. The single confirmation anywhere in the product is a native <code>window.confirm()</code> guarding playbook publication — which is to say the app confirms editing a rules document and does not confirm declining an insurance application.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">case-detail.tsx:143-163      decide() — no confirm, no notice
+grep -rn "role=\"dialog\"\|createPortal" web/src   <span class="no">0 matches</span>
+playbook-editor.tsx:322      window.confirm(…)     <span class="dim">the only one in the app</span></pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-14</span><span class="sev sev-high">High</span><span class="surface">/cases</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>The review queue cannot be searched, filtered, sorted or paged — and the rows are nearly blank</h3>
+      <p>No search box. No status filter. No "assigned to me". No sortable headers. No pagination. The only ordering is the server's <code>sla_due_at</code> ascending, nulls last. An underwriter with two hundred cases has no way to find one.</p>
+      <p>The row itself carries no client name, no product and no case reference — status, due date, assignee, tier, decision, score. The only way into a case is clicking the status badge. Meanwhile the query pulls <code>form_data</code> for every application behind those cases and renders none of it.</p>
+      <p>Every other list screen is better than this one, and <code>/clients</code> already contains the whole pattern to copy: search state, filter pills with <code>aria-pressed</code>, <code>toggleSort</code>, <code>aria-sort</code> on the header, a result count, two distinct empty states.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">cases/page.tsx:109-118   <span class="no">select + order only — no search, filter or range</span>
+cases/page.tsx:243-248   <span class="no">columns: status, due, assignee, tier, decision, score</span>
+cases/page.tsx:255-257   <span class="no">the status badge is the only link</span>
+cases/page.tsx:146       applications.select("id, form_data, status")  <span class="no">never rendered</span>
+clients/page.tsx:170-200 <span class="yes">the pattern to copy</span></pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-15</span><span class="sev sev-medium">Medium</span><span class="surface">/cases/[id]</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>Every case comment is anonymous</h3>
+      <p>The query selects <code>id, body, created_at</code>. <code>author_id</code> is <code>not null</code> in the table and references a real account — the seed file goes out of its way to explain that a comment cannot exist without one — and the UI drops it. On a case worked by three people, the discussion reads as one voice.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">case-detail.tsx:105   .select("id, body, created_at")   <span class="no">author_id not selected</span></pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-16</span><span class="sev sev-medium">Medium</span><span class="surface">/cases/[id]</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>No way back to the queue, and no link to the application</h3>
+      <p>The case screen is a dead end: no back link, and no link to the application it was opened for, even though it displays that application's data. A <code>BackLink</code> component exists and both other detail screens use it. Getting from a case to its documents means the browser's back button or retyping a URL.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">application-detail.tsx:766-776  <span class="yes">BackLink</span>
+client-detail.tsx:363-373       <span class="yes">BackLink</span>
+case-detail.tsx                 <span class="no">neither</span></pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-17</span><span class="sev sev-medium">Medium</span><span class="surface">/cases/[id]</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>The rule trace — the product's whole thesis — is a JSON dump</h3>
+      <p>"An underwriter gets an explainable case, not a black-box number" is the pitch. The screen where that is delivered renders <code>JSON.stringify(trace, null, 2)</code> in a <code>&lt;pre&gt;</code>. Every rule's id, expression, weight, outcome and <code>reason</code> is in there — including the <code>reason</code> string the playbook editor labels "shown to the underwriter on failure", which is currently shown to them as a JSON value.</p>
+      <p>The data to render this properly is already structured and already fetched. This is the highest-value cosmetic fix in the app, because it is the screen a buyer will be shown.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">case-detail.tsx:312-314   &lt;pre&gt;{JSON.stringify(…, null, 2)}&lt;/pre&gt;
+playbook-editor.tsx:905   "reason (shown to the underwriter on failure)"</pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-18</span><span class="sev sev-medium">Medium</span><span class="surface">/cases/[id]</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>Requirement progress is shown to the person uploading, not the person deciding</h3>
+      <p><code>requirementProgress</code> replicates the orchestrator's own predicate exactly — a document counts only when it is <code>extracted</code> <i>and</i> has fields — and the comment above it explains why that duplication is deliberate. It is consumed by exactly one screen, the application detail. The case screen, where somebody decides whether the file is complete enough to approve, shows nothing.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">web/src/lib/required-documents.ts:57-81   <span class="yes">requirementProgress</span>
+application-detail.tsx:368                <span class="yes">the only caller</span>
+case-detail.tsx                           <span class="no">not used</span></pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-19</span><span class="sev sev-medium">Medium</span><span class="surface">/cases</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>SLA badges freeze at page load</h3>
+      <p><code>SlaCell</code> is carefully built — resolved cases never turn red, missing deadlines say "Sin fecha", under eight hours gets a warning badge — and it compares against a <code>loadedAt</code> captured once at fetch time, deliberately, to keep rendering pure. The consequence is that a queue left open all afternoon shows the morning's deadlines. A tab open past a deadline never turns red.</p>
+      <p>Purity was the right instinct; it needs a ticking clock in state to go with it.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>E. The audit trail is written and never read</h2>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-20</span><span class="sev sev-high">High</span><span class="surface">all screens</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>Nothing in the product displays <code>audit_log</code></h3>
+      <p>The 2026-09-11 migration moved every staff transition into a <code>security definer</code> function that records what happened, revoked <code>insert</code> from <code>authenticated</code>, and left the table append-only with no update or delete policy for any role. It is a well-built audit trail. The only occurrence of the string <code>audit_log</code> in the entire frontend is a comment explaining that the function writes one.</p>
+      <p>So the case screen shows a decision but not who made it or when it changed hands; the client screen shows <code>updated_at</code> but not who edited it or what changed; and the compliance story — the reason a regulated buyer would choose this over a spreadsheet — cannot be demonstrated in the product at all. Note this is distinct from <code>SEC-2</code>, which is about <i>writing</i> document-access rows; this is about reading the rows that already exist.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">grep -rn "audit_log" web/src   <span class="no">1 match, and it is a comment</span>
+                               <span class="dim">case-detail.tsx:138</span></pre>
+      <h4>Fix</h4>
+      <p>A history panel on the case and client screens reading <code>audit_log</code> filtered by <code>entity_type</code> and <code>entity_id</code>. RLS already scopes it per tenant. The blocker is cosmetic — actor names need <code>UX-6</code>'s email or name mirror to render as anything but a UUID.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>F. Everything scales by fetching everything</h2>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-21</span><span class="sev sev-high">High</span><span class="surface">all lists</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>No pagination exists anywhere, and three screens over-fetch on top of that</h3>
+      <p>Zero occurrences of <code>.range(</code> in the repo. Every list selects every row its RLS policy allows. Today that is 14 clients and 15 applications, so nothing hurts; the first real tenant arrives with a portfolio.</p>
+      <p>Three specific patterns will bite before the row counts do:</p>
+      <pre class="evidence">dashboard/page.tsx:79-83     <span class="no">three whole tables pulled to compute four counters</span>
+applications/page.tsx:116    <span class="no">form_data (jsonb) for every row — never rendered</span>
+cases/page.tsx:146           <span class="no">form_data again — never rendered</span>
+client-detail.tsx:81-87      <span class="no">every score row ever written, deduped in JS</span>
+applications/page.tsx:139    <span class="no">same</span>
+cases/page.tsx:145-152       <span class="no">same</span></pre>
+      <p>The score queries are the worst of these because they grow with <i>usage</i> rather than with portfolio size: every rescore adds a row that every subsequent page load downloads and throws away. <code>playbook-editor.tsx:221-225</code> does the same thing with full playbook definitions to render a list of version numbers.</p>
+      <p>The dashboard's choice is documented and was reasonable at seed volume. The <code>form_data</code> selects are not — they are simply unused columns.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-22</span><span class="sev sev-medium">Medium</span><span class="surface">/applications</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>Client and product names are resolved with <code>Array.find</code> inside the render loop</h3>
+      <p>O(rows × clients) and O(rows × products), re-run on every keystroke in the search box, because the filter and the render are both client-side. The dashboard does the same lookup correctly, building a <code>Map</code> once. Same file, same data, two patterns.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">applications/page.tsx:226-232,469   <span class="no">.find() per row, in the map</span>
+dashboard/page.tsx:100              <span class="yes">Map built once</span></pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-23</span><span class="sev sev-medium">Medium</span><span class="surface">/clients, /applications</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>List state is lost on every navigation</h3>
+      <p>Search text, status filter, sort column and row selection all live in component state and none of it reaches the URL. Click into a client and press Back and you are at an unfiltered, unsorted, unselected list at the top. The only params read are <code>?client=</code> and <code>?new=</code>, and only once at mount.</p>
+      <p>It also means no link is shareable: an underwriter cannot send a colleague "the declined applications for this product".</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>G. Errors that never reach the person</h2>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-24</span><span class="sev sev-high">High</span><span class="surface">5 screens</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>Query errors are destructured away, and the failure renders as valid empty data</h3>
+      <p>Nine queries across five screens take <code>{ data }</code> and drop <code>{ error }</code>. The failures are silent and, worse, indistinguishable from a true empty result:</p>
+      <pre class="evidence">clients/page.tsx:82        <span class="no">application counts → every client shows "0 solicitudes"</span>
+client-detail.tsx:64       <span class="no">applications → "sin solicitudes"</span>
+applications/page.tsx:139  <span class="no">scores → every row shows no tier and no score</span>
+cases/page.tsx:129         <span class="no">profiles → assignee dropdowns render empty</span>
+case-detail.tsx:96         <span class="no">all four: application, documents, scores, comments</span>
+                           <span class="no">a failed documents query → "No se ha subido ningún documento"</span></pre>
+      <p>That last one is the sharp edge. An underwriter looks at a case, is told no documents were uploaded, and declines it for an incomplete file — when the documents are there and the query failed.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-25</span><span class="sev sev-high">High</span><span class="surface">app shell</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>No error boundary, no <code>not-found</code>, no route-level loading</h3>
+      <p>There is no <code>error.tsx</code>, <code>global-error.tsx</code>, <code>not-found.tsx</code> or <code>loading.tsx</code> anywhere in <code>src/app</code>. A throw in any client component — and every screen is a client component — takes the subtree down to Next's default. A bad URL gets the stock English 404, confirmed on the live site: <i>"This page could not be found."</i> in a Spanish product.</p>
+      <p>These are four small files and they are the cheapest resilience in the list.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-26</span><span class="sev sev-medium">Medium</span><span class="surface">lib/pipeline</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>The retry helper throws away the reason it failed</h3>
+      <p><code>enqueue()</code> is well-built — three attempts, exponential backoff, retries only on 5xx and network throws — and returns a bare <code>boolean</code>. It never reads the response body, so the <code>{ error }</code> each API route carefully constructs is discarded, and a 403, a 404 and a 500 all become the same generic Spanish sentence. The detail goes to <code>console.error</code> and nowhere else: no telemetry, no server-side record that a user's enqueue failed.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">web/src/lib/pipeline.ts:18-41   returns boolean; body never read
+                                console.error at :27, :31, :39</pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-27</span><span class="sev sev-medium">Medium</span><span class="surface">/dashboard</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>One failing query leaves the dashboard in skeletons forever</h3>
+      <p><code>find((r) =&gt; r.error)</code> returns early before <code>setData</code>, so a partial failure — cases fails, clients and applications succeed — shows an error banner above a page of permanent placeholders, with no retry. The two-thirds of the data that arrived is discarded.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-28</span><span class="sev sev-medium">Medium</span><span class="surface">/applications</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>The create form wipes itself on the failure it is telling you to recover from</h3>
+      <p>If <code>triggerApplicationProcessing</code> returns false the code sets an error telling the user to open the application and retry — then falls through and clears the client, the product and every dynamic field, and closes the form. The user is left with an instruction, an emptied form, and no link to the application that was in fact created.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">applications/page.tsx:207-209   setError(…retry from the application…)
+applications/page.tsx:215-219   <span class="no">no return — clears everything and closes</span></pre>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>H. There is no feedback system, only forty copies of one</h2>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-29</span><span class="sev sev-medium">Medium</span><span class="surface">app-wide</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>No toast primitive; six components re-declare the same two pieces of state</h3>
+      <p>Every screen hand-rolls <code>const [error, setError]</code> and <code>const [notice, setNotice]</code> and renders its own paragraph, which is why the quality varies so much between them: <code>role="alert"</code> on five screens and missing on three, a dashed empty-state card here and a bare <code>&lt;p&gt;Cargando…&lt;/p&gt;</code> there.</p>
+      <p>The clearest symptom: the case queue has no <code>notice</code> state at all, so assigning a case produces <b>zero</b> confirmation — the select value changes and nothing else happens. And because errors render at the top of the page, a failed assignment on row forty reports itself off-screen.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-30</span><span class="sev sev-medium">Medium</span><span class="surface">3 forms</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>Nothing guards unsaved work</h3>
+      <p>"Cancelar" on the client form discards a twenty-field draft with no confirmation, in both places it appears. Switching versions in the playbook editor replaces the draft outright. There is no <code>beforeunload</code> handler anywhere, so closing the tab mid-edit loses everything silently.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>I. Accessibility</h2>
+  <p class="intro">Owned by <code>CAL-6</code>, never audited. Checked live against the deployed login page and by reading every component. The foundations are better than expected — real <code>&lt;label for&gt;</code> on every input, correct <code>autocomplete</code> tokens, <code>&lt;dl&gt;</code> semantics on detail views, <code>aria-pressed</code> on the filter pills, and a composed <code>aria-label</code> on the dashboard's pipeline bar that is genuinely good work.</p>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-31</span><span class="sev sev-high">High</span><span class="surface">app shell</span><span class="ticket">CAL-6</span></div>
+    <div class="body">
+      <h3><code>&lt;html lang="en"&gt;</code> on a fully Spanish product</h3>
+      <p>Verified on the live site. Every screen reader announces Spanish content with English pronunciation rules, which for a Salvadoran insurance product is the difference between usable and not. It is a one-word change — and it is also the reason CLAUDE.md has to warn that <code>&lt;html lang&gt;</code> cannot tell you which build is live.</p>
+      <p><code>FUN-7</code> pinned the number and date locale to <code>es-SV</code> correctly, and stopped one line short of the document.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">web/src/app/layout.tsx:16   &lt;html lang=<span class="no">"en"</span> className="h-full antialiased"&gt;
+web/src/lib/format.ts:14    <span class="yes">es-SV</span></pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-32</span><span class="sev sev-medium">Medium</span><span class="surface">app-wide</span><span class="ticket">CAL-6</span></div>
+    <div class="body">
+      <h3>Success is never announced, and three screens do not announce failure either</h3>
+      <p>Not one <code>aria-live</code> region exists in the app — confirmed live. Every "Cliente guardado", "Extracción reencolada", "Publicado" is invisible to a screen reader. <code>role="alert"</code> is present on the dashboard, clients, applications and both detail components, and absent on <code>/cases</code>, <code>/register</code> and the case detail. The landing page also opens with an <code>&lt;h2&gt;</code> above its <code>&lt;h1&gt;</code>, and there is no skip link on any page.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">document.querySelectorAll('[aria-live]').length   <span class="no">0</span>   <span class="dim">(live)</span>
+headings on /                                     <span class="no">H2 then H1</span>
+a[href^="#"] skip link                            <span class="no">none</span></pre>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-33</span><span class="sev sev-medium">Medium</span><span class="surface">4 tables</span><span class="ticket">CAL-6</span></div>
+    <div class="body">
+      <h3>Table rows are click targets with no keyboard equivalent</h3>
+      <p><code>&lt;tr onClick={router.push}&gt;</code> with <code>cursor-pointer</code> and no <code>tabIndex</code>, no <code>role</code> and no <code>onKeyDown</code>. Keyboard users get in only because the first cell also happens to be a real <code>&lt;Link&gt;</code> — a rescue, not a design. The checkbox column stops propagation with a click handler on the <code>&lt;td&gt;</code>, which is mouse-only by construction. No table in the app has a <code>&lt;caption&gt;</code> or <code>scope="col"</code>.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-34</span><span class="sev sev-medium">Medium</span><span class="surface">app-wide</span><span class="ticket">CAL-6</span></div>
+    <div class="body">
+      <h3>Focus is never moved, because nothing ever moves it</h3>
+      <p>Pressing "Editar" swaps a detail panel for an inline form and leaves focus at the top of the document; a keyboard user has to tab back through the whole page to reach the field they asked for. There is no <code>aria-busy</code> while a mutation runs. The one silver lining is that there are no dialogs to trap focus in, because there are no dialogs.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>J. Responsive and theme</h2>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-35</span><span class="sev sev-medium">Medium</span><span class="surface">app-wide</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>The tablet range is unhandled by construction, and there is no mobile navigation</h3>
+      <p>The codebase contains <b>zero</b> <code>md:</code> classes — only <code>sm:</code> and <code>lg:</code>, twenty-two occurrences across seven files. The sidebar is <code>w-56</code> at every width with no collapse and no drawer, so on a phone a 224px rail sits permanently beside the content.</p>
+      <p>Three tables have no horizontal scroll container and will push the page sideways: <code>/cases</code>, <code>/register</code> and the case detail. The case detail's header uses <code>flex justify-between</code> with no <code>flex-wrap</code>. <code>/clients</code>, <code>/applications</code> and the client detail get this right, so the fix is a two-line copy from a neighbouring file.</p>
+      <p>Worth deciding rather than drifting: an underwriter reviewing a case on a tablet is a plausible use, an agent registering a client on a phone during a home visit even more so.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-36</span><span class="sev sev-low">Low</span><span class="surface">app shell</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>Dark mode is fully defined and completely unreachable</h3>
+      <p><code>globals.css</code> carries a complete <code>.dark</code> token set and the variant is wired. Nothing ever applies the class: no theme provider, no toggle, no <code>prefers-color-scheme</code> query, no stored preference. Three <code>dark:</code> utilities exist in the whole codebase, all in one badge component. Either finish it — a class on <code>&lt;html&gt;</code> and a toggle — or delete the tokens so the next person does not assume it works.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>K. The playbook editor</h2>
+  <p class="intro">The most sophisticated screen in the app by a distance — a fully structured form over every part of the schema, and a key-matched diff between versions that is real engineering, not a text compare. Its gaps are all on the safety side.</p>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-37</span><span class="sev sev-high">High</span><span class="surface">playbook editor</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>One validation runs before publish: that two numbers sum to 1</h3>
+      <p>That is the entire client-side gate on a document that decides whether people get insured. Nothing checks for an empty rule id, a duplicate id, a malformed expression, a missing tier, tiers that do not cover the range, a disqualifier pointing at a rule someone deleted, or — the subtle one — an <code>output_scale_adapter.map</code> whose keys stop matching after a tier label is renamed in the field right above it.</p>
+      <p>"Rules are data, not code" is the product's founding invariant, and the price of it is that the validator has to be the product's job. Today the only real validation lives in the grading engine, reached through an optional test button, and its output is a JSON blob.</p>
+      <h4>Evidence</h4>
+      <pre class="evidence">playbook-editor.tsx:386        weightSum !== 1  <span class="dim">← the whole gate</span>
+playbook-editor.tsx:1085       disabled={weightSum !== 1}
+playbook-editor.tsx:1035       <span class="no">renaming a tier label orphans its map entry</span>
+package.json                   <span class="no">no zod, no expr-eval — nothing parses an expression</span></pre>
+      <h4>Fix</h4>
+      <p>A shared schema module both <code>web</code> and <code>grading-engine</code> import, so the editor validates against the same definition the engine enforces rather than a hand-copied TypeScript interface. Short of that, a publish-time call to the existing <code>/score</code> route with a synthetic sample, blocking publication on a validation error.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-38</span><span class="sev sev-medium">Medium</span><span class="surface">playbook editor</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>No rollback, and a new draft can only be cloned from the newest version</h3>
+      <p><code>handleNewDraft</code> always clones <code>playbooks[0]</code>. If v4 turns out to be wrong, there is no "restore v3" and no "start a draft from v3" — you clone v4 and retype the differences by hand, reading them off the diff panel that sits right there and knows exactly what they are.</p>
+      <p>Published versions are immutable by database trigger, which is correct and is precisely why a first-class rollback is needed: the safe path is to publish a new version identical to an old one, and the editor gives no way to produce it.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-39</span><span class="sev sev-medium">Medium</span><span class="surface">playbook editor</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>The test panel shows a tenant admin the engine's internals</h3>
+      <p>A successful run is the whole upstream body <code>JSON.stringify</code>'d into a <code>&lt;pre&gt;</code>; a failure is the grading engine's raw validation object, pretty-printed. And when the upstream returns something that is not JSON, the body becomes <code>null</code> and the panel renders the four characters <code>null</code>.</p>
+      <p>The person this screen is built for is an insurer's business analyst — the entire product thesis is that they can edit rules without an engineer. The response has <code>final_score</code>, <code>decision</code> and <code>rule_trace</code> in it; rendering those three is most of the work.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-40</span><span class="sev sev-medium">Medium</span><span class="surface">playbook editor</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>You cannot walk from a playbook version to the decisions it produced</h3>
+      <p>"Every decision records the exact playbook version that produced it" is a stated invariant, and the link is stored — the application row carries <code>playbook_id</code> and <code>playbook_version</code>, and the detail screen displays <code>v4</code> as plain text. It is not a link, and there is no traversal the other way: the version list cannot tell you that v3 scored 40 applications and v4 has scored two.</p>
+      <p>That count is what makes publishing a new version feel safe, and it is also the answer to the question a regulator asks first.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-41</span><span class="sev sev-low">Low</span><span class="surface">playbook editor</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>Publish goes straight from the browser behind a native <code>confirm()</code></h3>
+      <p><code>supabase.rpc("publish_playbook")</code> called from the client, guarded by <code>window.confirm</code>, surfacing <code>rpcError.message</code> — a raw PostgREST string — into the page. The RPC itself is transactional and the trigger is the real safety net, so this is a polish item, not a hole. But it is the app's only confirmation dialog and it protects the wrong action relative to <code>UX-13</code>.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>L. Language, platform, and the missing net</h2>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-42</span><span class="sev sev-medium">Medium</span><span class="surface">app-wide</span><span class="ticket">FUN-7</span></div>
+    <div class="body">
+      <h3>English strings survive in a Spanish product, concentrated where a customer will look</h3>
+      <p><code>FUN-7</code> is recorded as closed and the bulk of it is. The remainder clusters in the playbook editor — the screen shown to the insurer's own analyst:</p>
+      <pre class="evidence">playbook-editor.tsx:315,335   "Saved."  /  "Published."
+playbook-editor.tsx:444,456   "Version {n} ({status})"
+playbook-editor.tsx:892       "expression (expr-eval syntax …)"
+playbook-editor.tsx:905       "reason (shown to the underwriter on failure)"
+playbook-editor.tsx:1029      "shown to tenant as"
+application-detail.tsx:333    "…was uploaded, but couldn't be queued for extraction."
+register/page.tsx:151         "No staff accounts yet."
+layout.tsx:4-8                <span class="dim">page metadata, English</span>
+Next.js stock 404             <span class="dim">"This page could not be found."</span></pre>
+      <p>There is no i18n library and no dictionary for UI copy — <code>labels.ts</code> and <code>roles.ts</code> translate domain enum values only. That is a defensible choice for a single-locale product; it just means the audit for stragglers is a grep, and it has not been run since the translation landed.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-43</span><span class="sev sev-high">High</span><span class="surface">repo</span><span class="ticket">CAL-3</span></div>
+    <div class="body">
+      <h3>Zero tests, and every fix above lands without one</h3>
+      <p>No runner, no config, no <code>test</code> script, no test step in CI — the workflow runs typecheck, lint and build. Restated here only for its interaction with this report: forty-seven changes are about to go into the repo with the most churn and all of the business logic, and the strongest check available is that it compiles.</p>
+      <p>The cheapest useful first suite is not component tests. It is Playwright driving the seven accounts in the next section through sign-in, one role gate, and one decision.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-44</span><span class="sev sev-medium">Medium</span><span class="surface">app shell</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>No middleware, so no session is ever refreshed</h3>
+      <p>There is no <code>middleware.ts</code>, and the server client's <code>setAll()</code> is a deliberate no-op because route handlers cannot reliably write cookies. Between them, nothing in the app ever writes a refreshed session cookie. A staff user whose access token expires mid-session is bounced to <code>/forbidden</code> rather than transparently renewed.</p>
+      <p>The security posture is fine — RLS is the boundary and <code>roles.ts</code> says so in its first nine lines — but the experience is not: an unauthenticated visit to <code>/cases</code> renders the app shell and "Verificando tu sesión…" before redirecting, which is both a flash of chrome and a slower path than a server redirect.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-45</span><span class="sev sev-medium">Medium</span><span class="surface">app shell</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>The session is read once per mount and never watched</h3>
+      <p><code>useStaffSession</code> runs one effect with no <code>onAuthStateChange</code> subscription, no refetch on focus and no polling. Sign out in one tab and the other keeps rendering the dashboard until something navigates. More pointedly: once <code>UX-1</code> lands, a role change will not take effect until the affected user reloads — including a demotion.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-46</span><span class="sev sev-low">Low</span><span class="surface">4 API routes</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>No timeout on any outbound call, on a platform where cold starts take a minute</h3>
+      <p>No <code>AbortSignal</code>, no <code>maxDuration</code>, no route segment config anywhere. On paid infrastructure this is a footnote. On Render's free tier, where a service that has been idle fifteen minutes takes about a minute to answer, it means a spinner with no ceiling and no explanation — and the retry helper's three attempts with 500&nbsp;ms backoff all expire long before the worker wakes.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="margin"><span class="id">UX-47</span><span class="sev sev-low">Low</span><span class="surface">4 API routes</span><span class="ticket">new</span></div>
+    <div class="body">
+      <h3>Two small inconsistencies across the four routes</h3>
+      <p>The missing-environment-variable 500 is returned <i>before</i> the auth check in all four, so an unauthenticated caller can learn which backends are configured — minor, but free to fix by moving three lines. And <code>user.is_anonymous</code> is checked in <code>api/users</code> and <code>api/playbooks/test</code> and not in <code>process</code> or <code>extract</code>; those two are still gated by an RLS probe, so it is a consistency gap rather than a hole.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>The test accounts</h2>
+  <p class="intro">Second half of the brief: sign-in accounts that identify Claude's activity in the data. Seven of them, one per role and tenant, which also closes <code>BLK-7</code> — the ticket for the three roles nobody has ever signed in as.</p>
+
+  <h3>On the address</h3>
+  <p><code>claude.test</code>, not <code>claude.com</code>. The identifier is what you asked for and it survives; the domain does not resolve, ever, because <code>.test</code> is reserved by RFC&nbsp;2606 for exactly this. That matters here specifically: <code>BLK-6</code> and <code>FUN-3</code> both add outbound email, and on the day SMTP is configured every one of these addresses becomes a live send to a domain the project does not control — including Supabase's own recovery flow, which anyone who knows the address can trigger. The existing <code>create-test-accounts.mjs</code> already chose <code>.test</code> for this reason and says so at line&nbsp;39. And there is no delete path in the product, so the choice is sticky.</p>
+
+  <div class="tablewrap">
+    <table>
+      <caption>Seven accounts</caption>
+      <thead>
+        <tr><th>Address</th><th>Role</th><th>Tenant</th><th>What it unblocks</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">superadmin@claude.test</td><td>superadmin</td><td>— (null)</td><td>Cross-tenant views and tenant creation, validated only by reading the code so far. Also the one role that cannot upload, by design.</td></tr>
+        <tr><td class="mono">admin-medico@claude.test</td><td>tenant_admin</td><td>medico</td><td><b>Highest value.</b> No account of any kind belongs to <code>medico</code> today, so its product, published playbook, six clients and five cases are unreachable by anyone.</td></tr>
+        <tr><td class="mono">admin-seguros@claude.test</td><td>tenant_admin</td><td>seguros</td><td>Playbook publish, branding, product creation and user creation, in the tenant that has the data.</td></tr>
+        <tr><td class="mono">underwriter-seguros@claude.test</td><td>underwriter</td><td>seguros</td><td>The review queue in the role it was designed around, and <code>decide_case</code> with a real session — never once exercised.</td></tr>
+        <tr><td class="mono">underwriter-medico@claude.test</td><td>underwriter</td><td>medico</td><td>The second vertical's different scale, thresholds and label set.</td></tr>
+        <tr><td class="mono">agent-seguros@claude.test</td><td>agent</td><td>seguros</td><td>Intake and upload. The agent role has never been signed in as either, and it is one of only two that can upload a document.</td></tr>
+        <tr><td class="mono">agent-medico@claude.test</td><td>agent</td><td>medico</td><td>Cross-tenant isolation probed from the weakest role — the assertion RLS tests make, made through the UI.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How to build it</h3>
+  <p>Extend <code>web/scripts/create-test-accounts.mjs</code> rather than writing a second script. It already has the parts that are annoying to get right: a hidden password prompt that refuses to run without a TTY, an idempotent skip that looks accounts up rather than trusting <code>createUser</code>'s error text, a profile upsert, and an explicit warning for the auth-user-without-profile state. Four changes:</p>
+  <ol>
+    <li>Replace the three-entry <code>ACCOUNTS</code> array with these seven, keeping the <code>why</code> field — it is the reason the file reads well.</li>
+    <li>Set a real <code>full_name</code> per account rather than falling back to the address — <code>"Claude · Analista (Seguros)"</code> and so on. This is what actually delivers the identification you asked for: it is the string that shows up in the assignee dropdown, in the case row, and beside a comment once <code>UX-15</code> is fixed.</li>
+    <li>Offer one password for all seven, prompted once. Seven hidden prompts is the kind of friction that gets a script abandoned halfway.</li>
+    <li>Fix two stale references while you are in the file: it points at <code>session-notes.md</code>, which does not exist in this workspace, and tells you to sign in at <code>/login</code>, which redirects to <code>/</code>.</li>
+  </ol>
+
+  <h3>Before running it</h3>
+  <p><code>web/.env.local</code> does not exist — the script needs <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>SUPABASE_SERVICE_ROLE_KEY</code> from <code>qualifier-secrets.env.txt</code>, and <code>.env.local</code> is gitignored. There is one Supabase project and it is production, so these accounts are being created in production; that is unavoidable until <code>BLK-4</code> and it is the same situation the existing script has always been in.</p>
+  <p>Two consequences worth knowing before, not after. Re-running <code>db/supabase/seed.sql</code> assigns cases by subquery to whoever holds the underwriter account — which will now be Claude's — and it deletes every row in both tenants, including any real pipeline run from <code>BLK-5</code>. And deleting a tenant cascades to its staff profiles, which would leave these auth users orphaned into permanent <code>/forbidden</code> accounts that the product has no way to remove.</p>
+
+  <h3>What to do with them once they exist</h3>
+  <p>They are the missing half of <code>PLAN.md</code> step 1 and they make it a real matrix rather than a walkthrough: sign in as each, confirm the nav is right for the role, confirm <code>agent-medico</code> cannot see a <code>seguros</code> client, run one application through the pipeline as an agent, decide it as the underwriter, and check <code>audit_log</code> gained the row. Then keep them: they are also the fixtures the Playwright suite in <code>UX-43</code> should drive.</p>
+</section>
+
+<footer>
+  <p class="label">Method</p>
+  <p>Static read of <code>qualifier-web</code> at <code>3b40927</code> — every page, route, component and lib module — plus the <code>profiles</code> schema, RLS policies, column grants and user-management functions in <code>qualifier-db</code> at <code>66208c2</code>. Live checks against <code>qualifier-web.onrender.com</code> were unauthenticated and read-only: page text, the DOM's accessibility properties on the login form, an unauthenticated <code>/cases</code>, and a 404. No account was used, nothing was written, and no attempt was made to reach data.</p>
+  <p>Not covered: the two Fastify services and the three agents, which the 2026-09-11 audit reached; prompt-injection resistance against hostile document content, still unexamined anywhere; and anything only visible behind a sign-in, which is the gap the seven accounts above exist to close.</p>
+  <p>Severity means product impact, not exploitability. <b>Blocker</b> — a real team cannot do the job, or a buyer's first serious question has no answer. <b>High</b> — the product is visibly incomplete in the first week of use. <b>Medium</b> — friction, inconsistency, or a scaling cliff not yet reached. <b>Low</b> — polish, or specific to the free tier.</p>
+</footer>
+</div>

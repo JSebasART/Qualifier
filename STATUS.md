@@ -1,8 +1,8 @@
-# Status — verified 2026-09-12
+# Status — verified 2026-09-13
 
 Measured against the running services, the production database (read only) and
-the repos. The checks below ran between 07:34 and 07:44 UTC on 2026-09-12,
-after the deploy.
+the repos. § 1 and § 3 were re-checked on 2026-09-13 around 20:10 UTC, after the
+`web` deploy. The rest of § 2 is from 2026-09-12 07:34–07:44 UTC.
 
 **Headline.** The 2026-09-11 audit's fixes are live. Every critical, high and
 medium finding is closed in production: the write side of the database is
@@ -14,13 +14,13 @@ What has still never happened is a real pipeline run (`BLK-5`), and now also a
 signed-in pass through the new decision path. Nothing has exercised the RPCs
 with a real session.
 
-> **2026-09-13: production's database is ahead of production's `web`.** The
-> three migrations from the 2026-09-12 web audit are applied (§ 2), but that
-> audit's `web` work is only on `develop` (`45cb1c6`, pushed, not promoted).
-> Until it is promoted, the live "Registrar y enviar" button fails: it inserts
-> an application already `submitted`, which `20260912000100` now refuses. Saving
-> a draft and submitting it from the application's page still works. **Promote
-> `web` next.** § 1 and § 3 below still describe 2026-09-12.
+**2026-09-13.** The 2026-09-12 web audit's work is live: its three migrations
+went to the database first (§ 2), then `develop` was promoted in `db` and `web`.
+Live now: staff management (deactivation, role and tenant changes, invitation
+and recovery links), a searchable and paged case queue, polling while the
+pipeline runs, confirmations before one-way actions, audit history on every
+record, toasts, and `web`'s first unit tests. None of it has been used signed in
+yet: the `@claude.test` accounts are not created (`web/scripts/create-test-accounts.mjs`).
 
 ## 0. How we got here
 
@@ -35,21 +35,22 @@ with a real session.
   re-audited, and deployed. The migration went to the database first; `web` and
   `grading-engine` then failed to build twice on a lockfile problem (§ 5) before
   going live.
-- **2026-09-13** — the web audit's three migrations applied to production.
-  `develop` pushed in `web` (15 commits, including toasts) and `db` (3); neither
-  promoted.
+- **2026-09-13** — the web audit's three migrations applied to production, then
+  `develop` promoted in `db` (3 commits) and `web` (15, ending with toasts).
+  `web` built on the first try.
 
 ## 1. Services
 
-All three live, checked 2026-09-12 07:43 UTC.
+`web` redeployed and checked 2026-09-13 ~20:10 UTC. The other two are unchanged
+since their 2026-09-12 07:43 UTC check.
 
 | Service | Deployed commit | Check |
 | --- | --- | --- |
-| `qualifier-web` | `3b40927` | `/` 200; `/api/playbooks/test` **401** unauthenticated; `/api/users` and `/api/documents/…/extract` 401; all six security headers present, CSP naming the real Supabase origin; no `x-powered-by` |
+| `qualifier-web` | `45cb1c6` (deploy `dep-dajg494s728c73bb864g`) | `/` 200. In a browser the sign-in form renders against the real Supabase, with "¿Olvidaste tu contraseña?", both toast live regions mounted, and no console errors. `lang="es"`. `/cases` and `/register` 307 to `/?next=…`. `/set-password` 200, unknown path 404 in Spanish. All ten API routes answer **401** unauthenticated. HSTS, frame, nosniff, referrer and permissions headers present, CSP report-only. |
 | `qualifier-grading-engine` | `a828460` | `/health` 200; `/score` answers 400 to an empty body, so the token is accepted |
 | `qualifier-ai-orchestrator` | `afee9ce` | `/health/queue` 200 `ok`, three queues empty, `dead_letter` 0 |
 
-`docs` is at `5a5baa3` and `db` at `66208c2`; neither deploys anything.
+`docs` is at `5a5baa3` and `db` at `02b0414`; neither deploys anything.
 
 ## 2. The database — `jskuoazhcgfyetxrmxyi`
 
@@ -95,10 +96,10 @@ pg-boss jobs.
 `main` equals `develop` equals the umbrella's pins in all five repos, and all of
 it is pushed.
 
-| Repo | `main` | What landed today |
+| Repo | `main` | What landed most recently |
 | --- | --- | --- |
-| `db` | `66208c2` | write-authorization migration, 38-assertion suite, CI mirroring Supabase's default privileges |
-| `web` | `3b40927` | decisions via RPCs, route authenticated, security headers, rebuilt lockfile |
+| `db` | `02b0414` | 2026-09-13: staff management, intake inserts that start at the start, client changes audited; three pgTAP suites (48 assertions) |
+| `web` | `45cb1c6` | 2026-09-13: the web audit's findings, test accounts script, 42 unit tests on Node's runner (in CI), toasts |
 | `ai-orchestrator` | `afee9ce` | tenant assertions, resumable processing, escalation model, CI on `develop` |
 | `grading-engine` | `a828460` | CI on `develop`, rebuilt lockfile |
 | `docs` | `5a5baa3` | CI on `develop` |
