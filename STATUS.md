@@ -19,8 +19,25 @@ went to the database first (§ 2), then `develop` was promoted in `db` and `web`
 Live now: staff management (deactivation, role and tenant changes, invitation
 and recovery links), a searchable and paged case queue, polling while the
 pipeline runs, confirmations before one-way actions, audit history on every
-record, toasts, and `web`'s first unit tests. None of it has been used signed in
-yet: the `@claude.test` accounts are not created (`web/scripts/create-test-accounts.mjs`).
+record, toasts, and `web`'s first unit tests.
+
+**Later on 2026-09-13: the first signed-in QA, and the pipeline was down.** With
+the seven `@claude.test` accounts created, a pass as superadmin and
+agent-seguros put one fictitious application through the real pipeline. It never
+scored: **every `application.process` job had failed since `20260911000000`
+reached production on 2026-09-12.** That migration's same-tenant composite
+foreign keys made the orchestrator's only PostgREST embed, `products(sla_hours)`,
+ambiguous. The fix, `ai-orchestrator` `5985020`, names the key, adds a test that
+refuses unnamed embeds, and is live and confirmed: the QA application's retry
+completed, was recorded as blocked, and opened a case with a 48 h deadline. Nothing
+else had been submitted in that window.
+
+Still open from that QA (details in § 6):
+- **Extraction field names don't match the playbooks.** The model names fields
+  itself (`monthly_salary`, `document_number`); the playbooks match exact keys
+  (`monthly_income`). Real documents will leave those rules indeterminate. Needs a
+  design decision, not yet started.
+- `web` fixes for the other findings are on `develop` (`3170a77`), **not promoted**.
 
 ## 0. How we got here
 
@@ -37,7 +54,8 @@ yet: the `@claude.test` accounts are not created (`web/scripts/create-test-accou
   going live.
 - **2026-09-13** — the web audit's three migrations applied to production, then
   `develop` promoted in `db` (3 commits) and `web` (15, ending with toasts).
-  `web` built on the first try.
+  `web` built on the first try. The first signed-in QA found scoring down since the
+  day before; the orchestrator fix was promoted the same evening.
 
 ## 1. Services
 
@@ -48,7 +66,7 @@ since their 2026-09-12 07:43 UTC check.
 | --- | --- | --- |
 | `qualifier-web` | `45cb1c6` (deploy `dep-dajg494s728c73bb864g`) | `/` 200. In a browser the sign-in form renders against the real Supabase, with "¿Olvidaste tu contraseña?", both toast live regions mounted, and no console errors. `lang="es"`. `/cases` and `/register` 307 to `/?next=…`. `/set-password` 200, unknown path 404 in Spanish. All ten API routes answer **401** unauthenticated. HSTS, frame, nosniff, referrer and permissions headers present, CSP report-only. |
 | `qualifier-grading-engine` | `a828460` | `/health` 200; `/score` answers 400 to an empty body, so the token is accepted |
-| `qualifier-ai-orchestrator` | `afee9ce` | `/health/queue` 200 `ok`, three queues empty, `dead_letter` 0 |
+| `qualifier-ai-orchestrator` | `5985020` (deploy `dep-dajhm9gjo6nc73ce2ur0`, live 2026-09-13 21:53 UTC) | Extraction and scoring both ran for the QA application: two `document.extract` jobs completed, and `application.process` completed on its fifth attempt, the first on this build |
 
 `docs` is at `5a5baa3` and `db` at `02b0414`; neither deploys anything.
 
@@ -139,23 +157,48 @@ Worth keeping, because both cost real time:
 
 ## 6. Open issues and risks
 
-1. **`BLK-5`: no application has gone through the pipeline**, and no signed-in
-   session has exercised the new decision path. Both belong to the same smoke
-   test (PLAN.md step 1).
-2. **`MODEL_DEFAULT`.** The secrets file still says `claude-sonnet-5`, which the
+1. **`BLK-5`, partly done.** One fictitious application went through extraction
+   and scoring on 2026-09-13. Its documents were marked "ficticio", so the model
+   flagged them and scoring was blocked: the consistency agent, the narrator and
+   grading-engine did not run on real extractions. No decision, assignment or
+   comment has been made signed in.
+2. **Extraction field names don't match the playbooks.** `extraction-agent.ts`
+   asks for "every relevant field" and never passes the keys the playbook reads.
+   The QA run returned `monthly_salary`, `document_number` and `issue_date`,
+   while the seguros playbook reads `document.proof_of_income.monthly_income`,
+   and values came back as "US$ 2,000.00" and "1 de septiembre de 2026". Rules
+   fed by documents will be indeterminate on real files. Only the seeded data
+   works, because its keys were written to match.
+3. **`web` `3170a77` on `develop`, not promoted:**
+   - the case screen reports a blocked score as "0 reglas no se pudo evaluar";
+   - birth dates show a day early (UTC parsing);
+   - a superadmin's queue offers other tenants' analysts;
+   - the copy claims scoring runs without documents;
+   - raw Postgres errors on client forms;
+   - English extraction labels;
+   - sign-in doesn't retry a Supabase 504.
+4. **Supabase gateway 504s.** Twice in ten minutes on 2026-09-13, auth and REST
+   requests timed out at the gateway after 5 s, with Postgres idle.
+5. **Supabase Auth's Site URL looks like `http://localhost:3000`**, since every
+   auth log line reports that referer. If so, the emailed password-reset link
+   points at localhost. Check Authentication → URL Configuration.
+6. **`MODEL_DEFAULT`.** The secrets file still says `claude-sonnet-5`, which the
    default path's 2048-token budget can't carry. Render runs `claude-sonnet-4-5`;
    keep it. `MODEL_ESCALATION` is now `claude-sonnet-5` in the blueprint.
-3. **One Supabase project, and it is production** (`BLK-4`), with no rehearsed
+7. **One Supabase project, and it is production** (`BLK-4`), with no rehearsed
    restore.
-4. **Nothing watches it** (`NEG-2`).
-5. **`render-blocks.env` is still on disk.** An automated delete was blocked;
+8. **Nothing watches it** (`NEG-2`).
+9. **`render-blocks.env` is still on disk.** An automated delete was blocked;
    delete it by hand.
-6. The three low audit findings.
+10. The three low audit findings.
 
 ## 7. Not verified
 
-- A signed-in pass through the UI: a real decision landing in `audit_log`, an
-  assignment, a submission. This is the first thing to do.
+- Signed in as an underwriter or tenant admin: a real decision landing in
+  `audit_log`, an assignment, the playbook engine test. Superadmin and
+  agent-seguros were covered on 2026-09-13 (submission, uploads, extraction, audit).
+  The other tenant accounts' permissions were checked through SQL as each user, in
+  a transaction that was rolled back.
 - GitHub Actions results. The repos are private and there is no `gh` CLI here.
   CI ran on `develop` for the first time today; nobody has read the outcome, and
   `db`'s `pg_prove` step has still never run on a real runner.
