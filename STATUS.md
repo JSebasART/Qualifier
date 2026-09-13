@@ -35,8 +35,11 @@ else had been submitted in that window.
 After that QA (details in § 6):
 - `web` `3170a77`, the fixes for the QA's UI findings, is **live** (22:23 UTC).
 - **Extraction field names**: the playbooks' document keys now reach the
-  extraction agent, on `ai-orchestrator` `develop` (`a1908f2`), **not promoted**.
-  Until it is, real documents still come back with keys the playbooks don't read.
+  extraction agent, `ai-orchestrator` `a1908f2`, **live** (22:34 UTC) and verified.
+  Re-extracting the QA income letter returned `monthly_income: 2000` as a number,
+  where the first run had `monthly_salary: "US$ 2,000.00"`. The audit entry
+  records `expected_keys: ["monthly_income"]`, missing none. Documents extracted
+  before this still carry the old keys, so re-extract them before rescoring.
 
 ## 0. How we got here
 
@@ -65,7 +68,7 @@ since their 2026-09-12 07:43 UTC check.
 | --- | --- | --- |
 | `qualifier-web` | `3170a77` (live 2026-09-13 22:23 UTC; the checks here are from `45cb1c6` and repeated for `3170a77` from outside: API 401s, redirects, headers, and the new sign-in copy in the served bundle) | `/` 200. In a browser the sign-in form renders against the real Supabase, with "¿Olvidaste tu contraseña?", both toast live regions mounted, and no console errors. `lang="es"`. `/cases` and `/register` 307 to `/?next=…`. `/set-password` 200, unknown path 404 in Spanish. All ten API routes answer **401** unauthenticated. HSTS, frame, nosniff, referrer and permissions headers present, CSP report-only. |
 | `qualifier-grading-engine` | `a828460` | `/health` 200; `/score` answers 400 to an empty body, so the token is accepted |
-| `qualifier-ai-orchestrator` | `5985020` (deploy `dep-dajhm9gjo6nc73ce2ur0`, live 2026-09-13 21:53 UTC) | Extraction and scoring both ran for the QA application: two `document.extract` jobs completed, and `application.process` completed on its fifth attempt, the first on this build |
+| `qualifier-ai-orchestrator` | `a1908f2` (deploy `dep-daji9rek1f9s73fsjirg`, live 2026-09-13 22:34 UTC; `5985020` before it) | Extraction and scoring both ran for the QA application: two `document.extract` jobs completed, and `application.process` completed on its fifth attempt, the first on this build |
 
 `docs` is at `5a5baa3` and `db` at `02b0414`; neither deploys anything.
 
@@ -161,8 +164,8 @@ Worth keeping, because both cost real time:
    flagged them and scoring was blocked: the consistency agent, the narrator and
    grading-engine did not run on real extractions. No decision, assignment or
    comment has been made signed in.
-2. **Extraction field names don't match the playbooks — fixed on `develop`
-   (`a1908f2`), not deployed.** `extraction-agent.ts`
+2. **Extraction field names didn't match the playbooks — fixed and live in
+   `a1908f2`, verified on one document.** `extraction-agent.ts`
    asked for "every relevant field" and never passed the keys the playbook reads.
    The QA run returned `monthly_salary`, `document_number` and `issue_date`,
    while the seguros playbook reads `document.proof_of_income.monthly_income`,
