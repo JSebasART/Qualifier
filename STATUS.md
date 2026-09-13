@@ -14,6 +14,14 @@ What has still never happened is a real pipeline run (`BLK-5`), and now also a
 signed-in pass through the new decision path. Nothing has exercised the RPCs
 with a real session.
 
+> **2026-09-13: production's database is ahead of production's `web`.** The
+> three migrations from the 2026-09-12 web audit are applied (§ 2), but that
+> audit's `web` work is only on `develop` (`45cb1c6`, pushed, not promoted).
+> Until it is promoted, the live "Registrar y enviar" button fails: it inserts
+> an application already `submitted`, which `20260912000100` now refuses. Saving
+> a draft and submitting it from the application's page still works. **Promote
+> `web` next.** § 1 and § 3 below still describe 2026-09-12.
+
 ## 0. How we got here
 
 - **2026-09-06** — this file said the Supabase project had been deleted and
@@ -27,6 +35,9 @@ with a real session.
   re-audited, and deployed. The migration went to the database first; `web` and
   `grading-engine` then failed to build twice on a lockfile problem (§ 5) before
   going live.
+- **2026-09-13** — the web audit's three migrations applied to production.
+  `develop` pushed in `web` (15 commits, including toasts) and `db` (3); neither
+  promoted.
 
 ## 1. Services
 
@@ -59,6 +70,20 @@ Verified read-only afterwards:
   while `full_name` still is;
 - 9 composite foreign keys, the superadmin constraint and the one-open-case
   index are in place.
+
+**2026-09-13, three more.** Applied through the Supabase connector's
+`apply_migration`, one transaction each, in order, after read-only checks that
+production still had the schema the files expect:
+
+| File | Ledger version | Verified afterwards |
+| --- | --- | --- |
+| `20260912000000_staff_management` | `20260913083440` | `profiles.is_active` (not null, default true) and `email`, backfilled for all 9 profiles. Both helpers filter on `is_active`. `set_staff_role(uuid,text,uuid)` replaces the two-argument version, and `set_staff_active` exists; both are executable by `authenticated` and not `anon`. `profiles_self_update` exists. A user JWT can update `full_name` but not `is_active` or `email`. |
+| `20260912000100_intake_inserts_start_at_the_start` | `20260913083542` | `applications_intake_write` requires `draft` with no submission or playbook fields. `documents_intake_write` requires `uploaded` with empty `extracted_data` and `validation`. This closes the forged-extraction insert that was open in production. |
+| `20260912000200_client_changes_audited` | `20260913083626` | `clients_audit` trigger enabled; `audit_client_change()` not executable by `authenticated` or `anon` |
+
+The security advisor raised nothing new: its warnings are the by-design
+`SECURITY DEFINER` RPCs, pg-boss's search paths and leaked-password protection
+being off.
 
 Contents are unchanged from the demo portfolio seeded on 2026-08-18: two
 tenants, 14 clients, 15 applications, 11 cases, 28 documents, 11 scores, 11
