@@ -40,6 +40,26 @@ After that QA (details in § 6):
   where the first run had `monthly_salary: "US$ 2,000.00"`. The audit entry
   records `expected_keys: ["monthly_income"]`, missing none. Documents extracted
   before this still carry the old keys, so re-extract them before rescoring.
+- **`required_documents[].max_age_days` is enforced** (`ai-orchestrator` `22183a9`,
+  `web` `a4e6ee2`, `db` `f818c0b`, `docs` `42e7439`, promoted 2026-09-13).
+  - It had been declared, editable and read by nothing.
+  - Age now counts from the issue date read from the document (the new
+    `ExtractionResult.issue_date`, YYYY-MM-DD), and the newest clean document must
+    be within the limit.
+  - It fails closed: an unreadable, ambiguous or future issue date doesn't meet
+    a limit. The application is blocked like one missing a document, and the
+    rationale says which documents are stale or undated.
+  - The `web` checklist mirrors the rule.
+  - **Production data:** the 15 seeded dated documents (6 proof of income, 9
+    médico lab results and medical reports) got a backfilled `issue_date` of
+    their upload date minus 12, 20 and 30 days. The médico rows had no date and
+    would have blocked on rescore. The seeded proofs of income will pass
+    seguros' 90 days on about 2026-10-28 to 11-04, and from then a rescore blocks
+    them as stale. That's the rule working on demo data that ages.
+  - The seed now computes these dates from `now()`.
+  - Verified by unit tests and a PGlite replay of `db` CI with the new seed
+    (127/127). Not yet exercised end to end: that needs a real, unflagged
+    document.
 
 ## 0. How we got here
 
