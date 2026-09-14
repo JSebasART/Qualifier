@@ -1,4 +1,4 @@
-# Status — verified 2026-09-13
+# Status — verified 2026-09-14
 
 Measured against the running services, the production database (read only) and
 the repos. § 1 and § 3 were re-checked on 2026-09-13 around 20:10 UTC, after the
@@ -61,6 +61,34 @@ After that QA (details in § 6):
     (127/127). Not yet exercised end to end: that needs a real, unflagged
     document.
 
+**2026-09-14: the smaller gaps after the web audit's fixes.** Two migrations
+went to the database first (§ 2), then `db` `4725a9d`, `ai-orchestrator`
+`fb21538`, `web` `adf7ae7` and `docs` `47b178e` were promoted.
+- **Document preview.** "Ver" shows the file beside its extracted fields (PDF in
+  an iframe, photo as an image), through the same audited signed-URL route.
+- **Uploads** take drag-and-drop and show a percentage per file (XMLHttpRequest,
+  the same request storage-js makes).
+- **Lists page in the database.** `/clients` and `/applications` read the
+  security_invoker views `client_list` and `application_list` instead of
+  downloading tables. The case queue and client page read `latest_scores`.
+  `/applications` sorts by client, product, status, score and date, has bulk
+  "send drafts" and "rescore", and both lists export CSV (formula cells
+  neutralised).
+- **No raw database English** reaches a toast or banner (`lib/db-errors.ts`).
+- **Field labels.** The extraction agent returns a Spanish `label` beside each
+  English key, for keys nobody could list in advance.
+- **Sign-ins are recorded.** Triggers on `auth.sessions` write `auth.signed_in`
+  / `auth.session_ended` and `profiles.last_signed_in_at`, shown as "Último
+  acceso" in the staff list.
+- **Credential routes are rate-limited** (`/api/users`, recovery links).
+- **CSP is enforced**, not report-only (M7).
+
+Verified: 157 pgTAP assertions in the PGlite replay (30 new), 104 orchestrator
+tests, 76 web tests, the web build, and mutation checks on the new safeguards.
+In production, a rolled-back rehearsal of Supabase Auth's session insert and
+delete wrote the expected rows, and each tenant's agent saw only its own rows
+through the views. **Not yet used in a browser signed in.**
+
 ## 0. How we got here
 
 - **2026-09-06** — this file said the Supabase project had been deleted and
@@ -81,16 +109,16 @@ After that QA (details in § 6):
 
 ## 1. Services
 
-`web` redeployed and checked 2026-09-13 ~20:10 UTC. The other two are unchanged
-since their 2026-09-12 07:43 UTC check.
+`web` and `ai-orchestrator` redeployed and checked 2026-09-14 ~17:25 UTC.
+`grading-engine` is unchanged since its 2026-09-12 07:43 UTC check.
 
 | Service | Deployed commit | Check |
 | --- | --- | --- |
-| `qualifier-web` | `3170a77` (live 2026-09-13 22:23 UTC; the checks here are from `45cb1c6` and repeated for `3170a77` from outside: API 401s, redirects, headers, and the new sign-in copy in the served bundle) | `/` 200. In a browser the sign-in form renders against the real Supabase, with "¿Olvidaste tu contraseña?", both toast live regions mounted, and no console errors. `lang="es"`. `/cases` and `/register` 307 to `/?next=…`. `/set-password` 200, unknown path 404 in Spanish. All ten API routes answer **401** unauthenticated. HSTS, frame, nosniff, referrer and permissions headers present, CSP report-only. |
+| `qualifier-web` | `adf7ae7` (deploy `dep-dak2qe3rjlhs73con830`, live 2026-09-14 17:23 UTC). Checked from outside: the sign-in page renders with no console errors or CSP violations, `/api/users`, `/api/documents/[id]/url` and `/api/ops/queue` answer 401, and the CSP header is `Content-Security-Policy`, enforced, with the Supabase origin in `frame-src` and `img-src`. The rest of this row is from `45cb1c6`. | `/` 200. In a browser the sign-in form renders against the real Supabase, with "¿Olvidaste tu contraseña?", both toast live regions mounted, and no console errors. `lang="es"`. `/cases` and `/register` 307 to `/?next=…`. `/set-password` 200, unknown path 404 in Spanish. All ten API routes answer **401** unauthenticated. HSTS, frame, nosniff, referrer and permissions headers present, CSP report-only. |
 | `qualifier-grading-engine` | `a828460` | `/health` 200; `/score` answers 400 to an empty body, so the token is accepted |
-| `qualifier-ai-orchestrator` | `a1908f2` (deploy `dep-daji9rek1f9s73fsjirg`, live 2026-09-13 22:34 UTC; `5985020` before it) | Extraction and scoring both ran for the QA application: two `document.extract` jobs completed, and `application.process` completed on its fifth attempt, the first on this build |
+| `qualifier-ai-orchestrator` | `fb21538` (deploy `dep-dak2qcrrjlhs73con65g`, live 2026-09-14 17:22 UTC; no error or warning logs since). The check that follows is from `a1908f2`. | Extraction and scoring both ran for the QA application: two `document.extract` jobs completed, and `application.process` completed on its fifth attempt, the first on this build |
 
-`docs` is at `5a5baa3` and `db` at `02b0414`; neither deploys anything.
+`docs` is at `47b178e` and `db` at `4725a9d`; neither deploys anything.
 
 ## 2. The database — `jskuoazhcgfyetxrmxyi`
 
@@ -122,6 +150,14 @@ production still had the schema the files expect:
 | `20260912000100_intake_inserts_start_at_the_start` | `20260913083542` | `applications_intake_write` requires `draft` with no submission or playbook fields. `documents_intake_write` requires `uploaded` with empty `extracted_data` and `validation`. This closes the forged-extraction insert that was open in production. |
 | `20260912000200_client_changes_audited` | `20260913083626` | `clients_audit` trigger enabled; `audit_client_change()` not executable by `authenticated` or `anon` |
 
+**2026-09-14, two more**, the same way, after checking that none of their objects
+existed:
+
+| File | Verified afterwards |
+| --- | --- |
+| `20260914000000_list_views` | `latest_scores`, `application_list`, `client_list` exist with `security_invoker=true`; `authenticated` can select and not update, `anon` cannot select. As agent-seguros and agent-medico, in a rolled-back transaction: 10 + 6 applications, 9 + 6 clients, 7 + 5 latest scores, which add up to the tables' totals, and no other tenant's rows. `applications_client_id_idx` already existed, so only the scores index was new. |
+| `20260914000100_sign_ins_recorded` | Both triggers enabled on `auth.sessions`. A rehearsal of Supabase Auth, rolled back: a session insert and delete for agent-seguros wrote `auth.signed_in` and `auth.session_ended` against seguros and set `last_signed_in_at`; the superadmin's session set `last_signed_in_at` and wrote no audit row. Afterwards, no `auth.%` rows and no `last_signed_in_at` remained. `authenticated` cannot update the column. The trigger function has no `EXECUTE` grant for `supabase_auth_admin`, which Postgres does not check when a trigger fires; that was confirmed on Postgres 17 before relying on it. |
+
 The security advisor raised nothing new: its warnings are the by-design
 `SECURITY DEFINER` RPCs, pg-boss's search paths and leaked-password protection
 being off.
@@ -138,11 +174,11 @@ it is pushed.
 
 | Repo | `main` | What landed most recently |
 | --- | --- | --- |
-| `db` | `02b0414` | 2026-09-13: staff management, intake inserts that start at the start, client changes audited; three pgTAP suites (48 assertions) |
-| `web` | `45cb1c6` | 2026-09-13: the web audit's findings, test accounts script, 42 unit tests on Node's runner (in CI), toasts |
-| `ai-orchestrator` | `afee9ce` | tenant assertions, resumable processing, escalation model, CI on `develop` |
+| `db` | `4725a9d` | 2026-09-14: list views, sign-ins recorded; eight pgTAP suites (157 assertions) |
+| `web` | `adf7ae7` | 2026-09-14: document preview, upload progress, database-side lists with bulk and export, Spanish errors, rate limits, enforced CSP; 76 unit tests |
+| `ai-orchestrator` | `fb21538` | 2026-09-14: Spanish field labels; 2026-09-13: embed fix, playbook keys, document max age; 104 tests |
 | `grading-engine` | `a828460` | CI on `develop`, rebuilt lockfile |
-| `docs` | `5a5baa3` | CI on `develop` |
+| `docs` | `47b178e` | 2026-09-14: list views and sign-in recording in supabase-schema.md |
 
 Verification before promoting: 79 pgTAP assertions across three suites in a
 step-by-step replay of `db`'s CI workflow; 70 orchestrator tests; 51
@@ -216,6 +252,12 @@ Worth keeping, because both cost real time:
 10. The three low audit findings.
 
 ## 7. Not verified
+
+- The 2026-09-14 web changes signed in: the preview, drag-and-drop with
+  progress, the lists' sorting, bulk actions and export, "Último acceso", and
+  the enforced CSP on signed-in screens. A real sign-in creating an
+  `auth.signed_in` row, as opposed to the rolled-back rehearsal.
+- The extraction agent actually filling `fields[].label` on a real document.
 
 - Signed in as an underwriter or tenant admin: a real decision landing in
   `audit_log`, an assignment, the playbook engine test. Superadmin and
