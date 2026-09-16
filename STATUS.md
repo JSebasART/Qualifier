@@ -89,6 +89,24 @@ In production, a rolled-back rehearsal of Supabase Auth's session insert and
 delete wrote the expected rows, and each tenant's agent saw only its own rows
 through the views. **Not yet used in a browser signed in.**
 
+**2026-09-15: the demo portfolio was prepared.** Two changes to production
+data, no code:
+- **The QA run was removed.** The 2026-09-13 fictitious client, its application
+  and the documents, score and case that hung off it are gone. Its `audit_log`
+  rows stay — the table is append-only by design, and they are reachable only
+  from screens that no longer exist — as do its three `ai_usage` rows, now with
+  a null `application_id`, which are the only model cost ever measured. Its two
+  files are still in the `documents` bucket: `storage.protect_delete` refuses a
+  direct delete, so removing them needs the Storage API.
+- **The seeded timestamps were moved forward** by the time since the seed ran
+  (2026-08-18), which is what the seed itself computes from `now()`. Every open
+  case deadline had been four weeks past, so the queue was entirely overdue.
+  Now: 4 overdue, 3 due within two days, applications from 3 hours to 10 days
+  old. Documents' `issue_date` moved with their upload, so every one is still
+  inside its playbook's `max_age_days` — rescoring a seeded application will not
+  block. `audit_log` was **not** shifted, so the history panels show the seeded
+  entries at their real August timestamps.
+
 ## 0. How we got here
 
 - **2026-09-06** — this file said the Supabase project had been deleted and
