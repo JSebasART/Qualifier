@@ -1,4 +1,45 @@
-# Status — verified 2026-09-14
+# Status — verified 2026-09-14, with a 2026-10-27 audit on top
+
+## 2026-10-27 — audit, and three fixes waiting on `develop`
+
+Full report: [`audit/2026-10-27-report.html`](audit/2026-10-27-report.html), in
+Spanish, with sales points. Everything in the sections below this one is still
+the 2026-09-14 record and was not re-verified, except where this section says so.
+The 2026-10-16/17 work (date-aware agents, real rescores, the médico run's fixes)
+is described in the umbrella's pin commits `5e8a0ba` and `cee8ec2`, not here.
+
+**On `develop`, CI green, not promoted.** Render deploys `main`, so none of these
+is live:
+
+| Repo | Commit | What |
+| --- | --- | --- |
+| `web` | `424ffd2` | Next.js 16.3.5 → 16.4.3. 16.3.5 falls inside eleven advisories, three of them unauthenticated RCE. The app uses none of the affected features. `npm audit --omit=dev` is now clean. |
+| `ai-orchestrator` | `e67fcbe` | fastify and fast-uri patched (moderate). zod's high advisory stays open: the fix is zod 4. |
+| `grading-engine` | `982f9a5` | Same as ai-orchestrator. |
+| `db` | `3dd22f7` | **CI passes for the first time.** All 13 runs since 2026-08-08 had failed before a single assertion, because PostgreSQL never started on the runner. A second bug sat behind it: the stub lacked `service_role`. CI now runs PostgreSQL 17, like production. 9 suites, 165 assertions. |
+
+**Found, not fixed:**
+
+- **`claude-sonnet-4-5` retires on 2026-11-30.** It is `MODEL_DEFAULT` on
+  Render. After that date nothing is extracted or scored. The successor,
+  `claude-sonnet-5-5`, rejects the forced `tool_choice` the agents use with a
+  400, so the migration is a code change, not an env var.
+  `src/lib/pricing.ts` also has no entry for it.
+- **`BLK-4` is still open.** Creating a free `qualifier-dev` Supabase project was
+  blocked on an account permission in this session.
+- **No agent prompt treats document content as data.** The AI score weighs 30 %
+  and 35 %. Every scored application still opens a case for a person.
+- **2 anonymous users** in `auth.users`, from 2026-08-13, with no profile.
+- **Every open seeded case is past its SLA.** The dates were last moved on
+  2026-09-15.
+- **The Supabase project was paused again.** It read `COMING_UP` when this
+  audit started.
+
+**Measured in production** (read only): the 2026-10-17 seguros application cost
+US$0.0808 across 4 model calls, with 33 s of model time. The médico one cost
+US$0.1946 across 12 calls, including the retries before the narrator fix.
+
+## 2026-09-14 record
 
 Measured against the running services, the production database (read only) and
 the repos. § 1 and § 3 were re-checked on 2026-09-13 around 20:10 UTC, after the

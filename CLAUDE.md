@@ -102,8 +102,9 @@ These are load-bearing decisions, each one already paid for once.
   `tenant_id` are closed with column privileges instead, and it cannot express a
   *transition*, which is why deciding a case goes through `decide_case()` and
   its siblings rather than an UPDATE. `write_authorization_test.sql` (38
-  assertions) covers that side, and both run in CI only since `db` `3c96a75`
-  (2026-09-11) — before that the step could not pass at all. Do not add a table
+  assertions) covers that side. Both run in CI only since `db` `3dd22f7`
+  (2026-10-27). Before that, every run failed in the step that starts
+  PostgreSQL, so no suite had ever passed on a runner. Do not add a table
   without an RLS policy and a test, and write the test from the attacker's side:
   an assertion that a role *cannot* do something.
 - **The service-role key bypasses RLS and must never reach a browser.** In `web`
@@ -198,6 +199,10 @@ entries call them `acme-life` and `bright-auto`; the UUIDs are the same.
   add a new one. Production's ledger records migrations under apply-time
   versions, so its names will not match the files; compare content, not names.
 - Tests: `grading-engine` and `ai-orchestrator` use vitest; `db` uses pgTAP in
-  CI against real Postgres. **`web` has no tests at all** (`CAL-3`) — the repo
-  with the most churn and all the business flow. Its production build is the
-  strongest check available there.
+  CI against real Postgres. `web` has unit tests on Node's test runner (80 as
+  of 2026-10-27) but none of its screens or flows (`CAL-3`, `CAL-4`) — the repo
+  with the most churn and all the business flow. Its production build is still
+  the strongest check available there.
+- **Read CI, don't assume it.** `db` was red on every run for two and a half
+  months while these docs said its suites ran in CI. The GitHub MCP tools
+  (`actions_list`, `get_job_logs`) read it from here.
