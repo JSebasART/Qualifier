@@ -147,25 +147,32 @@ hostile document content. Look at it before real applicants' files arrive.
 The legal track (`SEC-9`, `SEC-10`) has not started. It is calendar time, not
 engineering effort, and it blocks the contract.
 
-## Self-service intake links (`FUN-11`, proposed 2026-10-28)
+## Self-service intake links (`FUN-11`, built 2026-10-28, not deployed)
 
 Insurers want their own link: applicants fill in their own data and upload
-their own documents, as self-service health insurance grows. Nothing like that
-exists today. The `/apply` portal was removed in Phase 2.2, and the security
-work since then closed the anonymous surface it ran on. The design, the
-prerequisites and the phases are in
-[`SELF-SERVICE-PLAN.md`](SELF-SERVICE-PLAN.md). In short:
+their own documents, as self-service health insurance grows. Built the same
+day it was planned, on branch `claude/awesome-mccarthy-fecr2l` in `db`,
+`ai-orchestrator`, `web` and `docs`, and tested. **Nothing is in production.**
+The design, what was verified, and what is left are in
+[`SELF-SERVICE-PLAN.md`](SELF-SERVICE-PLAN.md) § "Implementation status". In
+short:
 
-- Personal links first: an agent sends one to a known client.
-- The public product link follows, gated on `FUN-10`, `FUN-3`, `SEC-4`,
-  `SEC-6`, legal, `BLK-4` and paid plans.
-- Never through an anonymous Supabase session.
+- Never through an anonymous Supabase session. The applicant holds a hashed
+  token; every write is an `intake_*` function only the service role can run.
+- Personal links work as soon as the migrations are applied.
+- The product link fails closed in production until the captcha, mail, a
+  ClamAV service and a published consent text exist. Behind those come the
+  legal wording, `BLK-4` and paid plans.
+- Next step: merge the four branches to `develop`, apply the three migrations
+  to production one transaction at a time, then promote.
 
 ## Open decisions
 
 - `MODEL_DEFAULT`, and when escalation moves to `claude-opus-5` (step 2).
-- Which kind of self-service link ships first, and the other five decisions in
-  [`SELF-SERVICE-PLAN.md`](SELF-SERVICE-PLAN.md) § "Open decisions".
+- The self-service decisions were taken as the plan recommended
+  ([`SELF-SERVICE-PLAN.md`](SELF-SERVICE-PLAN.md) § "Implementation status").
+  Revisit decision 2, what an applicant is told about a decline, with the
+  first insurer.
 - Where step 1's realistic documents come from.
 - Who on the insurer's side would edit playbooks — still the assumption the
   whole product rests on.

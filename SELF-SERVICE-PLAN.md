@@ -1,6 +1,82 @@
 # Plan — self-service intake links
 
-Drafted 2026-10-28 against `develop` in all five repos. Nothing here is built.
+Drafted 2026-10-28 against `develop` in all five repos, and built the same day.
+
+## Implementation status — 2026-10-28
+
+**Phases 0–3 are built in code, tested, and pushed. None of it is deployed or
+applied to production.** Every repo carries the work on branch
+`claude/awesome-mccarthy-fecr2l`, cut from `develop`:
+
+| Repo | Head | What it carries |
+| --- | --- | --- |
+| `db` | `2e567e0` | `20261028000000` typed form fields, `20261028000100` the intake tables and functions, `20261028000200` spend cap, purge, outbox; `intake_test.sql` |
+| `ai-orchestrator` | `656cf64` | prompt-injection rule, fence and detector; ClamAV scan; spend cap; scoring waits for documents; outbox sender and nightly purge |
+| `web` | `8dd2d13` | `/s/` pages and `/api/intake/*`; staff screens (links, consent, form editor, personal links, duplicates, origin, applicant message); typed staff form |
+| `docs` | `9b7607e` | architecture, module overview, schema, roadmap, `FUN-11` in the gap analysis |
+
+The umbrella's pins still point at `main`, as `CLAUDE.md` requires: bump them
+only once the branches are merged to `develop` and promoted.
+
+**Verified:**
+
+- `db`: all 10 pgTAP suites pass, 262 assertions, in a local replay of CI on
+  Postgres 16. `intake_test.sql` adds 97 from the attacker's side.
+  `anon_surface_test.sql` passes unchanged. Mutation checks (granting
+  `intake_start` to `anon`, dropping the provenance trigger, exposing
+  `token_hash`, dropping consent immutability) each fail a named assertion.
+- `ai-orchestrator`: 159 tests (15 new, including a fake clamd speaking the
+  real protocol). Typecheck and build are clean.
+- `web`: 94 unit tests (18 new), typecheck, lint, the production build, and
+  `npm ci` from a clean `node_modules`.
+- End to end in Chromium at phone size, against the real database functions
+  (local Postgres, a stand-in for PostgREST RPC and Storage):
+  - A product-link applicant went from landing to submitted. A wrong code,
+    an invalid DUI and an out-of-range answer were each refused.
+  - An applicant answered a request for more information. The internal note
+    stayed hidden, and the case returned to the queue with a rescore
+    requested.
+  - A personal link refused a wrong date of birth and then opened, with the
+    insurer's record locked.
+  - Without the cookie the session reads 401; a cross-site POST gets 403.
+
+**Not verified:** anything against real Supabase, Storage, Resend, Turnstile,
+ClamAV or the Anthropic API. The orchestrator's database calls go through
+mocks in its unit tests, and the end-to-end run had no orchestrator behind it.
+
+**Decided while building**, following the recommendations under "Open
+decisions" below:
+
+1. Both link kinds are built. The product link **fails closed in production**
+   without a captcha and mail configured, and its documents are rejected unread
+   without a malware scanner. Personal links depend on none of these.
+2. The decision email is set per link (`decision_notice`). The default is
+   "there is an answer, the insurer will contact you".
+3. Email through Resend. Agents send a personal link by copy or WhatsApp share.
+   No SMS or WhatsApp API.
+4. Links live on Tramiq's domain (`/s/<slug>`, `/s/p/<token>`).
+5. Token sessions; no applicant accounts.
+6. Pricing is not engineering. The per-tenant spend cap bounds the cost question.
+
+**Left, and none of it is code:**
+
+- Apply the three migrations to production, as single transactions
+  (`RUNBOOK.md` § "Apply a migration", never `supabase db push`), then
+  merge and promote.
+- The privacy and consent wording, written with the lawyer (`SEC-9`,
+  `SEC-10`). The seed adds a **draft** per tenant and publishes nothing.
+- Accounts and configuration:
+  - Resend: `MAIL_API_KEY` and `MAIL_FROM` on web and ai-orchestrator, with a
+    verified domain.
+  - Cloudflare Turnstile: `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, a build argument,
+    and `TURNSTILE_SECRET_KEY`.
+  - A ClamAV service at `CLAMAV_HOST`. It needs about 1.5 GB of RAM, so not
+    a free instance.
+  - `PUBLIC_WEB_URL` on both services.
+- `BLK-4` and paid plans, before a product link is published.
+- Phase 4 stays unbuilt, as the plan says: on evidence only.
+
+
 Identifiers (`FUN-3`, `SEC-4`…) refer to `docs/product-gap-analysis.md`; sizes
 use its scale (**S** days, **M** one to two weeks, **L** three weeks or more).
 Proposed identifier for this work: **`FUN-11`**.

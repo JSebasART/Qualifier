@@ -106,6 +106,12 @@ These are load-bearing decisions, each one already paid for once.
   (2026-09-11) — before that the step could not pass at all. Do not add a table
   without an RLS policy and a test, and write the test from the attacker's side:
   an assertion that a role *cannot* do something.
+- **An applicant never holds a database credential** (`FUN-11`). Self-service
+  intake runs on a hashed token and `intake_*` functions executable by
+  `service_role` only, called from `web/src/lib/intake/server.ts` after its
+  captcha and rate limits. Granting one of them to `anon`, or reviving
+  anonymous sign-ins, reopens what the 2026-09 security work closed;
+  `intake_test.sql` asserts both.
 - **The service-role key bypasses RLS and must never reach a browser.** In `web`
   it is reachable only through `src/lib/service-client.ts`, marked `server-only`
   so a client-side import is a build error.

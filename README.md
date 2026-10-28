@@ -40,8 +40,9 @@ Then:
   demo you can run in front of a prospect.
 - [`RUNBOOK.md`](RUNBOOK.md) — the commands: rebuild the database, deploy,
   verify, prepare for a demo.
-- [`SELF-SERVICE-PLAN.md`](SELF-SERVICE-PLAN.md) — the proposal for insurer-owned
-  links where applicants file their own applications (`FUN-11`, not built).
+- [`SELF-SERVICE-PLAN.md`](SELF-SERVICE-PLAN.md) — insurer-owned links where
+  applicants file their own applications (`FUN-11`): the design, and its
+  implementation status (built and tested on a branch, not deployed).
 
 Then the reference documentation:
 
