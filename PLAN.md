@@ -147,9 +147,25 @@ hostile document content. Look at it before real applicants' files arrive.
 The legal track (`SEC-9`, `SEC-10`) has not started. It is calendar time, not
 engineering effort, and it blocks the contract.
 
+## Self-service intake links (`FUN-11`, proposed 2026-10-28)
+
+Insurers want their own link: applicants fill in their own data and upload
+their own documents, as self-service health insurance grows. Nothing like that
+exists today. The `/apply` portal was removed in Phase 2.2, and the security
+work since then closed the anonymous surface it ran on. The design, the
+prerequisites and the phases are in
+[`SELF-SERVICE-PLAN.md`](SELF-SERVICE-PLAN.md). In short:
+
+- Personal links first: an agent sends one to a known client.
+- The public product link follows, gated on `FUN-10`, `FUN-3`, `SEC-4`,
+  `SEC-6`, legal, `BLK-4` and paid plans.
+- Never through an anonymous Supabase session.
+
 ## Open decisions
 
 - `MODEL_DEFAULT`, and when escalation moves to `claude-opus-5` (step 2).
+- Which kind of self-service link ships first, and the other five decisions in
+  [`SELF-SERVICE-PLAN.md`](SELF-SERVICE-PLAN.md) § "Open decisions".
 - Where step 1's realistic documents come from.
 - Who on the insurer's side would edit playbooks — still the assumption the
   whole product rests on.
@@ -170,4 +186,8 @@ engineering effort, and it blocks the contract.
 - **Let `develop` drift from `main` again.** Promote small and often.
 - **Rewrite `grading-engine` in Go, move the queue to Redis, build self-serve
   onboarding or integrations.** Each is conditioned on evidence that does not
-  exist yet.
+  exist yet. "Self-serve onboarding" means *tenants* signing themselves up.
+  Applicant self-service is a separate thing with its own plan
+  ([`SELF-SERVICE-PLAN.md`](SELF-SERVICE-PLAN.md)).
+- **Bring back `/apply` or anonymous sign-ins** to get applicant self-service
+  quickly. The 2026-09 security work exists to close exactly that surface.
