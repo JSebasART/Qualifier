@@ -163,16 +163,22 @@ short:
 - The product link fails closed in production until the captcha, mail, a
   ClamAV service and a published consent text exist. Behind those come the
   legal wording, `BLK-4` and paid plans.
-- Next step: merge the four branches to `develop`, apply the three migrations
+- Phase 4 is built too, each part off until configured: WhatsApp, an
+  insurer's own domain, the embeddable form, the identity check against the
+  DUI, and automatic approval of clean cases. Automatic approval cannot be
+  switched on until a product has 100 human decisions on `approve`
+  recommendations, at least 98% of them approved.
+- Next step: merge the four branches to `develop`, apply the five migrations
   to production one transaction at a time, then promote.
 
 ## Open decisions
 
 - `MODEL_DEFAULT`, and when escalation moves to `claude-opus-5` (step 2).
-- The self-service decisions were taken as the plan recommended
-  ([`SELF-SERVICE-PLAN.md`](SELF-SERVICE-PLAN.md) § "Implementation status").
-  Revisit decision 2, what an applicant is told about a decline, with the
-  first insurer.
+- The self-service decisions were settled during the build, as the plan
+  recommended ([`SELF-SERVICE-PLAN.md`](SELF-SERVICE-PLAN.md) § "Implementation
+  status"). Each is a default. Revisit decision 2, what an applicant is told
+  about a decline, with the first insurer. Revisit decision 7, the automatic
+  approval bar, before any product turns it on.
 - Where step 1's realistic documents come from.
 - Who on the insurer's side would edit playbooks — still the assumption the
   whole product rests on.

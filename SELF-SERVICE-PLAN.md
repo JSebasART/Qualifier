@@ -4,63 +4,88 @@ Drafted 2026-10-28 against `develop` in all five repos, and built the same day.
 
 ## Implementation status — 2026-10-28
 
-**Phases 0–3 are built in code, tested, and pushed. None of it is deployed or
-applied to production.** Every repo carries the work on branch
+**All five phases, 0–4, are built in code, tested, and pushed. None of it is
+deployed or applied to production.** Phase 4 was planned as "on evidence
+only"; it is built but **off until configured**, and automatic approval cannot
+be switched on until the evidence exists. Every repo carries the work on branch
 `claude/awesome-mccarthy-fecr2l`, cut from `develop`:
 
 | Repo | Head | What it carries |
 | --- | --- | --- |
-| `db` | `2e567e0` | `20261028000000` typed form fields, `20261028000100` the intake tables and functions, `20261028000200` spend cap, purge, outbox; `intake_test.sql` |
-| `ai-orchestrator` | `656cf64` | prompt-injection rule, fence and detector; ClamAV scan; spend cap; scoring waits for documents; outbox sender and nightly purge |
-| `web` | `8dd2d13` | `/s/` pages and `/api/intake/*`; staff screens (links, consent, form editor, personal links, duplicates, origin, applicant message); typed staff form |
-| `docs` | `9b7607e` | architecture, module overview, schema, roadmap, `FUN-11` in the gap analysis |
+| `db` | `278fdb7` | Phases 0–3: `20261028000000` typed form fields, `20261028000100` the intake tables and functions, `20261028000200` spend cap, purge and outbox. Phase 4: `20261029000000` CAL-2 measure and gated automatic approval, `20261029000100` WhatsApp, custom domains, embed origins. Tests: `intake_test.sql`, `auto_approval_test.sql`, `intake_channels_test.sql` |
+| `ai-orchestrator` | `8503b9e` | Phases 0–3: prompt-injection rule, fence and detector; ClamAV scan; spend cap; scoring waits for documents; outbox sender; nightly purge. Phase 4: identity check against the DUI, automatic approval after scoring, WhatsApp delivery of the outbox |
+| `web` | `8e43aee` | Phases 0–3: `/s/` pages and `/api/intake/*`; staff screens; typed staff form. Phase 4: automatic-approval panel with its evidence, identity result on the case; WhatsApp start and resume; "Dominio propio" and host gating in the proxy; `/s/e/<slug>` with per-link `frame-ancestors` and the embed snippet |
+| `docs` | `5e518b8` | Architecture, module overview, schema, roadmap; `FUN-11`, `CAL-2` and `NEG-6` progress in the gap analysis |
 
 The umbrella's pins still point at `main`, as `CLAUDE.md` requires: bump them
 only once the branches are merged to `develop` and promoted.
 
 **Verified:**
 
-- `db`: all 10 pgTAP suites pass, 262 assertions, in a local replay of CI on
-  Postgres 16. `intake_test.sql` adds 97 from the attacker's side.
-  `anon_surface_test.sql` passes unchanged. Mutation checks (granting
-  `intake_start` to `anon`, dropping the provenance trigger, exposing
-  `token_hash`, dropping consent immutability) each fail a named assertion.
-- `ai-orchestrator`: 159 tests (15 new, including a fake clamd speaking the
-  real protocol). Typecheck and build are clean.
-- `web`: 94 unit tests (18 new), typecheck, lint, the production build, and
-  `npm ci` from a clean `node_modules`.
+- `db`: all 12 pgTAP suites pass, 305 assertions, in a local replay of CI on
+  Postgres 16. Three suites are new: `intake_test.sql` (97),
+  `auto_approval_test.sql` (16) and `intake_channels_test.sql` (27), all from
+  the attacker's side. `anon_surface_test.sql` passes unchanged.
+- `db` mutation checks: granting `intake_start` to `anon`, dropping the
+  provenance trigger, exposing `token_hash` and dropping consent immutability
+  each fail a named assertion.
+- `ai-orchestrator`: 171 tests, including a fake clamd speaking the real
+  protocol, the identity comparison and the WhatsApp outbox. Typecheck and
+  build are clean.
+- `web`: 106 unit tests, typecheck, lint and the production build. Also
+  `npm ci` from a clean `node_modules`; no dependency changed in phase 4.
 - End to end in Chromium at phone size, against the real database functions
   (local Postgres, a stand-in for PostgREST RPC and Storage):
-  - A product-link applicant went from landing to submitted. A wrong code,
-    an invalid DUI and an out-of-range answer were each refused.
+  - A product-link applicant went from landing to submitted. A wrong code, an
+    invalid DUI and an out-of-range answer were each refused.
   - An applicant answered a request for more information. The internal note
     stayed hidden, and the case returned to the queue with a rescore
     requested.
   - A personal link refused a wrong date of birth and then opened, with the
     insurer's record locked.
   - Without the cookie the session reads 401; a cross-site POST gets 403.
+  - Phase 4: the form embedded in a stand-in insurer page, started and
+    verified without leaving it. The frame took the form's height, and a
+    reload resumed the session through the header token.
+  - Phase 4: an unlisted site, and a link with no origins, got nothing in the
+    frame.
+  - Phase 4: a WhatsApp start, verify and resume.
+- Phase 4, by curl:
+  - An insurer host redirects `/dashboard` and `/api/users` to its root.
+  - Its root opens the default link.
+  - Another tenant's slug is not found on it.
+  - The embed's `frame-ancestors` is exactly the link's origins, or `'none'`.
 
 **Not verified:** anything against real Supabase, Storage, Resend, Turnstile,
-ClamAV or the Anthropic API. The orchestrator's database calls go through
-mocks in its unit tests, and the end-to-end run had no orchestrator behind it.
+ClamAV, WhatsApp Cloud API, DNS or the Anthropic API. The orchestrator's
+database calls go through mocks in its unit tests, and the end-to-end runs had
+no orchestrator behind them. The staff screens added in phase 4 (domains, embed
+origins, automatic approval) are covered by typecheck, lint and build only.
+They need a signed-in staff session, which the stand-in does not provide.
 
-**Decided while building**, following the recommendations under "Open
-decisions" below:
+**Settled while building**, by me, following the recommendations under "Open
+decisions" below. Each is a default that can be changed:
 
 1. Both link kinds are built. The product link **fails closed in production**
-   without a captcha and mail configured, and its documents are rejected unread
-   without a malware scanner. Personal links depend on none of these.
-2. The decision email is set per link (`decision_notice`). The default is
+   without a captcha and a way to send the code, and its documents are
+   rejected unread without a malware scanner. Personal links depend on none of
+   these.
+2. The decision message is set per link (`decision_notice`). The default is
    "there is an answer, the insurer will contact you".
-3. Email through Resend. Agents send a personal link by copy or WhatsApp share.
-   No SMS or WhatsApp API.
-4. Links live on Tramiq's domain (`/s/<slug>`, `/s/p/<token>`).
+3. Email through Resend. WhatsApp through Meta's Cloud API, offered only once
+   configured. Agents still send a personal link by copy or WhatsApp share.
+4. Links live on Tramiq's domain by default. An insurer can add its own,
+   verified by DNS.
 5. Token sessions; no applicant accounts.
 6. Pricing is not engineering. The per-tenant spend cap bounds the cost question.
+7. Automatic approval: approves only, never declines. It needs 100 decided
+   `approve` recommendations in 180 days, at least 98% approved, and that bar
+   is re-checked on every decision. The constants live in a migration, not a
+   setting.
 
 **Left, and none of it is code:**
 
-- Apply the three migrations to production, as single transactions
+- Apply the five migrations to production, as single transactions
   (`RUNBOOK.md` § "Apply a migration", never `supabase db push`), then
   merge and promote.
 - The privacy and consent wording, written with the lawyer (`SEC-9`,
@@ -72,10 +97,22 @@ decisions" below:
     and `TURNSTILE_SECRET_KEY`.
   - A ClamAV service at `CLAMAV_HOST`. It needs about 1.5 GB of RAM, so not
     a free instance.
-  - `PUBLIC_WEB_URL` on both services.
+  - `PUBLIC_WEB_URL` on both services. On web it also switches on insurer
+    domains, so set `PRIMARY_HOSTS` to the `onrender.com` name with it.
+  - WhatsApp, optional: a Meta Business account, `WHATSAPP_TOKEN` and
+    `WHATSAPP_PHONE_NUMBER_ID` on both services, and five templates approved
+    by Meta:
+    - on web, an authentication template for the code (`tramiq_codigo`) and
+      one for the resume link (`tramiq_continuar`);
+    - on ai-orchestrator, the three notices (`tramiq_solicitud_recibida`,
+      `tramiq_informacion_requerida`, `tramiq_solicitud_respondida`).
+    The names can be overridden by environment variables.
+  - Each insurer domain added to the web service in Render, for its
+    certificate.
+  - A national-registry service for `IDENTITY_REGISTRY_URL`, optional.
 - `BLK-4` and paid plans, before a product link is published.
-- Phase 4 stays unbuilt, as the plan says: on evidence only.
-
+- Automatic approval stays unavailable until a product has the decision
+  history behind it. That is time, not work.
 
 Identifiers (`FUN-3`, `SEC-4`…) refer to `docs/product-gap-analysis.md`; sizes
 use its scale (**S** days, **M** one to two weeks, **L** three weeks or more).
@@ -362,6 +399,9 @@ prerequisite above.**
   below).
 
 ### Phase 4 — On evidence only
+
+*Built 2026-10-28, each part off until configured; see "Implementation status"
+above.*
 
 - A custom domain per tenant (`solicitudes.<aseguradora>.com`).
 - An embeddable form. Today `frame-ancestors 'none'`, so this would mean
