@@ -180,6 +180,60 @@ The security advisor raised nothing new: its warnings are the by-design
 `SECURITY DEFINER` RPCs, pg-boss's search paths and leaked-password protection
 being off.
 
+**2026-10-29, five more: self-service intake (`FUN-11`), phases 0–4.** Applied
+through the connector's `apply_migration`, one transaction each, in order, after
+a full rehearsal on production that ran all five inside one transaction and
+raised at the end to force a rollback (RUNBOOK.md § "Apply a migration"). Each
+was sent wrapped in a guard that checks its MD5 against the file before
+running it, so what ran is byte-identical to the repo, minus full-line comments
+outside function bodies.
+
+| File | Ledger version |
+| --- | --- |
+| `20261028000000_typed_form_schema` | `20261029043059` |
+| `20261028000100_self_service_intake` | `20261029043639` |
+| `20261028000200_intake_lifecycle` | `20261029043904` |
+| `20261029000000_auto_approval` | `20261029044028` |
+| `20261029000100_intake_channels_domains_embed` | `20261029044251` |
+
+Verified afterwards:
+
+- **Matches the repo.** Production's `public` schema matches a database built
+  from the repo's files: all 675 objects, including what `anon`,
+  `authenticated` and `service_role` may each do with every function, table,
+  view and column. Before the apply, production already matched the files
+  through `20261017000000`; the only differences were in how Postgres 17
+  writes grants.
+- **Locked down.** No `SECURITY DEFINER` function is executable by `anon`, and
+  `anon` holds nothing on the new tables or views.
+- **What `main` still does keeps working.** In rolled-back transactions as a
+  seguros tenant admin:
+  - they see the tenant's 10 applications, directly and in `application_list`;
+  - a client and application inserted as `main`'s web inserts them get
+    `source = staff` and `channel = staff`;
+  - `intake_start` is refused to them, and `intake_link_public` to `anon`.
+- **Data untouched.** 2 tenants, 2 products, 16 clients, 17 applications, 13
+  cases, 14 scores, 33 documents, 41 audit rows. Every existing application is
+  `staff`, and every existing document got `received_at` at apply time. No
+  intake link, consent text or domain exists. Automatic approval is off
+  everywhere. Seguros' life product, the one checked, has 1 of the 100
+  decisions it needs.
+
+The code that uses this schema is on `develop`, not `main`. Production runs the
+previous code against it, and that combination was checked above.
+
+The security advisor raised nothing new in kind:
+- `authenticated` can execute `SECURITY DEFINER` functions: 19 entries, the new
+  staff RPCs among them, each of which checks the caller's role itself.
+- pg-boss's search paths.
+- Leaked-password protection is off.
+- "Anonymous Access Policies" on every table with a policy `to authenticated`,
+  the new ones included. That lint fires because **anonymous sign-ins are still
+  enabled in Supabase Auth**. Nothing calls `signInAnonymously()`, and an
+  anonymous user has no profile, so `current_tenant_id()` is null and every
+  policy returns nothing. Turning it off (Authentication > Providers) is still
+  the right move; `web/README.md` already says so.
+
 Contents are unchanged from the demo portfolio seeded on 2026-08-18: two
 tenants, 14 clients, 15 applications, 11 cases, 28 documents, 11 scores, 11
 audit entries (all seeded), 9 staff profiles, 11 auth users, `ai_usage` 0, no

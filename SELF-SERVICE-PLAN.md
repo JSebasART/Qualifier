@@ -4,11 +4,14 @@ Drafted 2026-10-28 against `develop` in all five repos, and built the same day.
 
 ## Implementation status — 2026-10-28
 
-**All five phases, 0–4, are built in code, tested, and pushed. None of it is
-deployed or applied to production.** Phase 4 was planned as "on evidence
+**All five phases, 0–4, are built in code, tested, and merged to `develop`.
+Their five migrations were applied to production on 2026-10-29; the code is
+not deployed yet.** Phase 4 was planned as "on evidence
 only"; it is built but **off until configured**, and automatic approval cannot
-be switched on until the evidence exists. Every repo carries the work on branch
-`claude/awesome-mccarthy-fecr2l`, cut from `develop`:
+be switched on until the evidence exists. The work was built on branch
+`claude/awesome-mccarthy-fecr2l` in each repo and **fast-forwarded into
+`develop` on 2026-10-29**, so `develop` now sits at these heads. `main`, which
+Render deploys, does not have them:
 
 | Repo | Head | What it carries |
 | --- | --- | --- |
@@ -18,12 +21,13 @@ be switched on until the evidence exists. Every repo carries the work on branch
 | `docs` | `5e518b8` | Architecture, module overview, schema, roadmap; `FUN-11`, `CAL-2` and `NEG-6` progress in the gap analysis |
 
 The umbrella's pins still point at `main`, as `CLAUDE.md` requires: bump them
-only once the branches are merged to `develop` and promoted.
+once `develop` is promoted.
 
 **Verified:**
 
 - `db`: all 12 pgTAP suites pass, 305 assertions, in a local replay of CI on
-  Postgres 16. Three suites are new: `intake_test.sql` (97),
+  Postgres 16 and in CI itself on Postgres 17 (the `develop` push,
+  2026-10-29). Three suites are new: `intake_test.sql` (97),
   `auto_approval_test.sql` (16) and `intake_channels_test.sql` (27), all from
   the attacker's side. `anon_surface_test.sql` passes unchanged.
 - `db` mutation checks: granting `intake_start` to `anon`, dropping the
@@ -56,7 +60,12 @@ only once the branches are merged to `develop` and promoted.
   - Another tenant's slug is not found on it.
   - The embed's `frame-ancestors` is exactly the link's origins, or `'none'`.
 
-**Not verified:** anything against real Supabase, Storage, Resend, Turnstile,
+- Production after the apply: its schema matches a database built from the
+  files, all 675 objects, privileges included. In rolled-back transactions:
+  - a staff session still reads and writes as `main`'s code does;
+  - `intake_start` is refused to staff, and `intake_link_public` to `anon`.
+
+**Not verified:** anything end to end against real Supabase, Storage, Resend, Turnstile,
 ClamAV, WhatsApp Cloud API, DNS or the Anthropic API. The orchestrator's
 database calls go through mocks in its unit tests, and the end-to-end runs had
 no orchestrator behind them. The staff screens added in phase 4 (domains, embed
@@ -85,9 +94,11 @@ decisions" below. Each is a default that can be changed:
 
 **Left, and none of it is code:**
 
-- Apply the five migrations to production, as single transactions
-  (`RUNBOOK.md` § "Apply a migration", never `supabase db push`), then
-  merge and promote.
+- Promote `develop` to `main`. The migrations are already in production (applied
+  2026-10-29, one transaction each, after a rolled-back rehearsal; STATUS.md
+  § 2), which is the order this needs. The promoted web reads
+  `application_list.channel`, and ai-orchestrator calls the new outbox and
+  approval functions on a schedule.
 - The privacy and consent wording, written with the lawyer (`SEC-9`,
   `SEC-10`). The seed adds a **draft** per tenant and publishes nothing.
 - Accounts and configuration:

@@ -210,9 +210,30 @@ Render deploys code; nothing applies migrations for you. Production's ledger
 records them under apply-time versions, so its names will not match the files —
 compare content, not names.
 
-```bash
-cd db && npx supabase link --project-ref jskuoazhcgfyetxrmxyi && npm run db:push
-```
+**Never `supabase db push` against production** (PLAN.md § "What not to do"):
+the ledger's versions match none of the filenames, so a push would replay
+everything from `init_schema`. Apply through the Supabase connector instead,
+one migration per `apply_migration` call. The 2026-10-29 apply of five
+migrations used this sequence (STATUS.md § 2):
+
+1. **Baseline.** Read-only: compare production with a local database built from
+   the files up to the last applied migration. Compare definitions and per-role
+   privileges (`has_*_privilege`), not the raw grant strings: Postgres 17
+   writes those differently.
+2. **Rehearse.** Run every pending migration in one `execute_sql` call, followed
+   by checks and a final `raise exception`. A multi-statement query runs as
+   one implicit transaction, so the raise rolls everything back. Check this
+   once first with a throwaway `create table` followed by a raise. Useful
+   checks:
+   - no `SECURITY DEFINER` function executable by `anon`;
+   - the views `main`'s web reads keep their columns;
+   - a staff write as the current `web` performs it, under
+     `set local role authenticated` and `request.jwt.claims`.
+3. **Apply,** in order, one `apply_migration` each. When the SQL is long, wrap
+   it in a `do` block that checks its `md5()` against the file before
+   `execute`-ing it. A copy that differs by one byte then refuses to run.
+4. **Verify** with the same comparison as step 1, against a database built from
+   all the files, then look at the security advisor.
 
 **A migration that changes who may write what has to go out before the `web`
 build that depends on it.** `20260911000000` is the example: it creates

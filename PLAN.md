@@ -151,8 +151,9 @@ engineering effort, and it blocks the contract.
 
 Insurers want their own link: applicants fill in their own data and upload
 their own documents, as self-service health insurance grows. Built the same
-day it was planned, on branch `claude/awesome-mccarthy-fecr2l` in `db`,
-`ai-orchestrator`, `web` and `docs`, and tested. **Nothing is in production.**
+day it was planned, in `db`, `ai-orchestrator`, `web` and `docs`, tested,
+and merged to `develop`. **Its schema is in production since 2026-10-29; its
+code is not**: `main` does not have it yet.
 The design, what was verified, and what is left are in
 [`SELF-SERVICE-PLAN.md`](SELF-SERVICE-PLAN.md) § "Implementation status". In
 short:
@@ -168,8 +169,13 @@ short:
   DUI, and automatic approval of clean cases. Automatic approval cannot be
   switched on until a product has 100 human decisions on `approve`
   recommendations, at least 98% of them approved.
-- Next step: merge the four branches to `develop`, apply the five migrations
-  to production one transaction at a time, then promote.
+- Merged into `develop` in all four repos on 2026-10-29, with CI green there.
+  The five migrations were applied to production the same day, after a
+  rolled-back rehearsal, and verified against the repo (STATUS.md § 2).
+  Production's current code runs fine on the new schema.
+- Next: promote `develop` to `main` (RUNBOOK.md § "Promote develop to main").
+  That deploys the self-service code with every phase-4 part still off until
+  configured.
 
 ## Open decisions
 
