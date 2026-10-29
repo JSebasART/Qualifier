@@ -219,8 +219,31 @@ Verified afterwards:
   everywhere. Seguros' life product, the one checked, has 1 of the 100
   decisions it needs.
 
-The code that uses this schema is on `develop`, not `main`. Production runs the
-previous code against it, and that combination was checked above.
+**Later on 2026-10-29: promoted and deployed.** `develop` was fast-forwarded
+into `main` in all five repos:
+
+| Repo | `main` |
+| --- | --- |
+| docs | `5e518b8` |
+| db | `278fdb7` |
+| grading-engine | `982f9a5` (the 2026-10-27 fastify patch) |
+| ai-orchestrator | `8503b9e` |
+| web | `8e43aee` (Next.js 16.4.3) |
+
+Render deployed the three services within two minutes, and each went live:
+
+- **grading-engine** and **ai-orchestrator** answer `/health`. The
+  orchestrator came up in embedded worker mode.
+- **pg-boss** has the two new queues (`intake.notifications`, `intake.purge`,
+  policy `singleton`) and their schedules. The notifications job completed
+  once a minute until the free instance spun down after 15 idle minutes. As
+  with every queue here, scheduled jobs run only while the service is awake.
+- **web** runs Next.js 16.4.3 and passed Render's health check on `/`.
+- No service logged an error or a warning outside the build.
+
+Not checked by hand: this session's network policy refused connections to
+`onrender.com`, so nobody has loaded the sign-in page or `/s/` since the
+deploy.
 
 The security advisor raised nothing new in kind:
 - `authenticated` can execute `SECURITY DEFINER` functions: 19 entries, the new

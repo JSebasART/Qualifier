@@ -147,13 +147,14 @@ hostile document content. Look at it before real applicants' files arrive.
 The legal track (`SEC-9`, `SEC-10`) has not started. It is calendar time, not
 engineering effort, and it blocks the contract.
 
-## Self-service intake links (`FUN-11`, built 2026-10-28, not deployed)
+## Self-service intake links (`FUN-11`, built 2026-10-28, deployed 2026-10-29)
 
 Insurers want their own link: applicants fill in their own data and upload
 their own documents, as self-service health insurance grows. Built the same
 day it was planned, in `db`, `ai-orchestrator`, `web` and `docs`, tested,
-and merged to `develop`. **Its schema is in production since 2026-10-29; its
-code is not**: `main` does not have it yet.
+and merged to `develop`. **In production since 2026-10-29**: the schema first,
+then the code, promoted to `main` and deployed the same day. Every part is
+still off until configured.
 The design, what was verified, and what is left are in
 [`SELF-SERVICE-PLAN.md`](SELF-SERVICE-PLAN.md) § "Implementation status". In
 short:
@@ -173,9 +174,10 @@ short:
   The five migrations were applied to production the same day, after a
   rolled-back rehearsal, and verified against the repo (STATUS.md § 2).
   Production's current code runs fine on the new schema.
-- Next: promote `develop` to `main` (RUNBOOK.md § "Promote develop to main").
-  That deploys the self-service code with every phase-4 part still off until
-  configured.
+- Promoted to `main` in all five repos on 2026-10-29. Render deployed
+  grading-engine, ai-orchestrator and web, and all three came up clean. The
+  orchestrator's new scheduled jobs registered and ran (STATUS.md § 2).
+- Next: what turns it on, none of it code (SELF-SERVICE-PLAN.md § "Left").
 
 ## Open decisions
 

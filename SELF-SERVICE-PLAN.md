@@ -4,14 +4,13 @@ Drafted 2026-10-28 against `develop` in all five repos, and built the same day.
 
 ## Implementation status — 2026-10-28
 
-**All five phases, 0–4, are built in code, tested, and merged to `develop`.
-Their five migrations were applied to production on 2026-10-29; the code is
-not deployed yet.** Phase 4 was planned as "on evidence
+**All five phases, 0–4, are built, tested and in production since 2026-10-29:
+the five migrations first, then `develop` promoted to `main` and deployed.** Phase 4 was planned as "on evidence
 only"; it is built but **off until configured**, and automatic approval cannot
 be switched on until the evidence exists. The work was built on branch
 `claude/awesome-mccarthy-fecr2l` in each repo and **fast-forwarded into
-`develop` on 2026-10-29**, so `develop` now sits at these heads. `main`, which
-Render deploys, does not have them:
+`develop` on 2026-10-29**, then promoted to `main` the same day. `main`, which
+Render deploys, sits at these heads:
 
 | Repo | Head | What it carries |
 | --- | --- | --- |
@@ -20,8 +19,8 @@ Render deploys, does not have them:
 | `web` | `8e43aee` | Phases 0–3: `/s/` pages and `/api/intake/*`; staff screens; typed staff form. Phase 4: automatic-approval panel with its evidence, identity result on the case; WhatsApp start and resume; "Dominio propio" and host gating in the proxy; `/s/e/<slug>` with per-link `frame-ancestors` and the embed snippet |
 | `docs` | `5e518b8` | Architecture, module overview, schema, roadmap; `FUN-11`, `CAL-2` and `NEG-6` progress in the gap analysis |
 
-The umbrella's pins still point at `main`, as `CLAUDE.md` requires: bump them
-once `develop` is promoted.
+The umbrella's pins point at these `main` commits (grading-engine at
+`982f9a5`, a lockfile-only fastify patch promoted alongside).
 
 **Verified:**
 
@@ -94,11 +93,6 @@ decisions" below. Each is a default that can be changed:
 
 **Left, and none of it is code:**
 
-- Promote `develop` to `main`. The migrations are already in production (applied
-  2026-10-29, one transaction each, after a rolled-back rehearsal; STATUS.md
-  § 2), which is the order this needs. The promoted web reads
-  `application_list.channel`, and ai-orchestrator calls the new outbox and
-  approval functions on a schedule.
 - The privacy and consent wording, written with the lawyer (`SEC-9`,
   `SEC-10`). The seed adds a **draft** per tenant and publishes nothing.
 - Accounts and configuration:
