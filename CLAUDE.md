@@ -144,9 +144,14 @@ relevant commit message, in `docs/deployment.md`, or in
 - **Never put `sync: false` in a Render `envVarGroup`.** Render ignores such
   variables silently — no warning, no prompt, no error. Secrets go directly on
   the service's own `envVars`.
-- **Literal values in `render.yaml` can come back.** A blueprint sync can
-  re-apply them over a dashboard edit. The retired `claude-opus-4-1` is declared
-  there as `MODEL_ESCALATION` today.
+- **Literal values in `render.yaml` can come back.** A blueprint sync
+  re-applies them over a dashboard edit, and a push to `main` can trigger one:
+  ai-orchestrator's 2026-10-29 deploy was a blueprint sync. Today the file
+  declares `MODEL_DEFAULT=claude-sonnet-4-5` and
+  `MODEL_ESCALATION=claude-sonnet-5`, so a model changed only in the dashboard
+  reverts on the next sync. Change it in the file. Until 2026-09-12
+  (ai-orchestrator `afee9ce`) the file declared the retired `claude-opus-4-1`
+  this way.
 - **An API-only deploy of `ai-orchestrator` is the worst kind of broken.**
   Uploads succeed, the API returns `202`, the queue fills, nothing is ever
   scored, and nothing errors. `WORKER_MODE=embedded` (what ships) folds the
@@ -204,6 +209,8 @@ entries call them `acme-life` and `bright-auto`; the UUIDs are the same.
   add a new one. Production's ledger records migrations under apply-time
   versions, so its names will not match the files; compare content, not names.
 - Tests: `grading-engine` and `ai-orchestrator` use vitest; `db` uses pgTAP in
-  CI against real Postgres. **`web` has no tests at all** (`CAL-3`) — the repo
-  with the most churn and all the business flow. Its production build is the
-  strongest check available there.
+  CI against real Postgres. `web` has unit tests on Node's built-in runner
+  (`npm test`) for its libraries and route helpers, but nothing renders a
+  screen or drives a browser (`CAL-3`, partly closed). It is the repo with the
+  most churn and all the business flow, so its production build is still the
+  strongest check of the screens. Counts are in RUNBOOK.md § "Tests".

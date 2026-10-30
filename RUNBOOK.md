@@ -291,10 +291,33 @@ cd ai-orchestrator && npm test
 cd db && npm run db:test
 ```
 
-As of 2026-09-12: grading-engine 51 tests, ai-orchestrator 70, and `db` 79
-pgTAP assertions across three suites — read isolation, write authorization, and
-publish. `web` has no tests (`CAL-3`); its production build is the strongest
-check available there:
+```bash
+cd web && npm test
+```
+
+As of 2026-10-30:
+
+| Repo | Tests |
+| --- | --- |
+| grading-engine | 55 |
+| ai-orchestrator | 181 |
+| `web` | 107 unit tests |
+| `db` | 305 pgTAP assertions in 12 suites |
+
+`db`'s suites cover:
+- read isolation and write authorization;
+- publishing;
+- staff management, sign-ins and client audit;
+- list views and the anonymous surface;
+- intake inserts;
+- self-service intake, its channels, and automatic approval.
+
+CI runs them on Postgres 17, production's version. `db:test` needs the local
+Supabase stack (Docker); without it, replay CI's own steps on a plain Postgres
+(`db/.github/workflows/ci.yml`).
+
+`web`'s unit tests cover its libraries and route helpers, not its screens, so
+its production build is still the strongest check there (`CAL-3`):
 
 ```bash
 cd web && npm run typecheck && npm run lint && npm run build

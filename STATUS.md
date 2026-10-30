@@ -1,10 +1,40 @@
-# Status — verified 2026-09-14
+# Status — verified 2026-10-30
 
-Measured against the running services, the production database (read only) and
-the repos. § 1 and § 3 were re-checked on 2026-09-13 around 20:10 UTC, after the
-`web` deploy. The rest of § 2 is from 2026-09-12 07:34–07:44 UTC.
+This file grew as a log. The headline below is current; everything after it is
+history, each part as true as its date. The newest evidence is § 2's entries for
+2026-10-29: the self-service migrations, the promotion and the deploy.
 
-**Headline.** The 2026-09-11 audit's fixes are live. Every critical, high and
+**Headline (2026-10-30).**
+
+- **Self-service intake (`FUN-11`), all five phases, is in production since
+  2026-10-29.** The migrations went first, after a rehearsal on production
+  that rolled itself back. Then all five repos were promoted, and Render
+  deployed grading-engine, ai-orchestrator and web without errors.
+- **Nothing applicant-facing runs yet.** No consent text is published and no
+  intake link exists, and Resend, Turnstile and ClamAV are not configured.
+  Every phase-4 part is off until configured, and automatic approval cannot
+  switch on before a product has 100 human decisions to measure.
+- **Not checked by a person since that deploy.** Nobody has loaded the site or
+  signed in: the session that deployed could not reach `onrender.com`. A
+  signed-in pass of the new staff screens is still owed: custom domain,
+  embedding sites, the automatic-approval panel.
+- **Supabase Auth settings to change:** anonymous sign-ins are still enabled,
+  and leaked-password protection is off (§ 2).
+- **Demo data is ageing out.** The seeded seguros proofs of income cross the
+  playbook's 90-day limit around 2026-10-28 to 11-04. From then, a rescore
+  blocks those applications as stale (2026-09-13 entry below).
+- **The free tier sleeps the orchestrator after 15 idle minutes, and its
+  scheduled jobs sleep with it** (§ 2, 2026-10-29). The 2026-10-30 work wakes it
+  to send applicant notifications after a decision, and purges abandoned drafts
+  when it wakes. That work sits on the `claude/awesome-mccarthy-fecr2l`
+  branches, not yet merged or deployed.
+
+**As of 2026-09-14** (history). Measured against the running services, the
+production database (read only) and the repos. § 1 and § 3 were re-checked on
+2026-09-13 around 20:10 UTC, after the `web` deploy. The rest of § 2 is from
+2026-09-12 07:34–07:44 UTC.
+
+The 2026-09-11 audit's fixes are live. Every critical, high and
 medium finding is closed in production: the write side of the database is
 authorised, the case screen's decisions go through role-checked functions that
 record what happened, the playbook-test route no longer answers strangers, and
