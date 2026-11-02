@@ -14,8 +14,11 @@ history, each part as true as its date. The newest evidence is § 2's entries fo
   intake link exists, and Resend, Turnstile and ClamAV are not configured.
   Every phase-4 part is off until configured, and automatic approval cannot
   switch on before a product has 100 human decisions to measure.
-- **Not checked by a person since that deploy.** Nobody has loaded the site or
-  signed in: the session that deployed could not reach `onrender.com`. A
+- **Checked from outside only, on 2026-10-30.** The session that deployed
+  could not reach `onrender.com`, so a later session probed it without
+  signing in: both services answer `/health` with 200, `web` serves the
+  Spanish Tramiq build ("Verificando tu sesión…"), and an unknown `/s/` link
+  shows "Enlace no encontrado". Nobody has signed in since the deploy. A
   signed-in pass of the new staff screens is still owed: custom domain,
   embedding sites, the automatic-approval panel.
 - **Supabase Auth settings to change:** anonymous sign-ins are still enabled,
@@ -26,8 +29,9 @@ history, each part as true as its date. The newest evidence is § 2's entries fo
 - **The free tier sleeps the orchestrator after 15 idle minutes, and its
   scheduled jobs sleep with it** (§ 2, 2026-10-29). The 2026-10-30 work wakes it
   to send applicant notifications after a decision, and purges abandoned drafts
-  when it wakes. That work sits on the `claude/awesome-mccarthy-fecr2l`
-  branches, not yet merged or deployed.
+  when it wakes. That work, with zod 4 and CI on actions v5, was merged into
+  `develop` in all five repos on 2026-11-02. It is **not deployed**: Render
+  builds `main`.
 
 **As of 2026-09-14** (history). Measured against the running services, the
 production database (read only) and the repos. § 1 and § 3 were re-checked on
