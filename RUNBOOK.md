@@ -81,8 +81,12 @@ curl -sS -H "Authorization: Bearer $(grep '^SERVICE_AUTH_TOKEN=' qualifier-secre
 ```
 
 It returns `200` with `"status":"ok"`, or **`503` with `"status":"stalled"`**
-once a job has sat unclaimed longer than `QUEUE_STALL_SECONDS`, and `401` if
-the token is not the one Render holds.
+once a job has sat unclaimed longer than `QUEUE_STALL_SECONDS`, or **`503` with
+`"status":"failing"`** when a queue's recent attempts all failed. That last one
+is what an invalid `ANTHROPIC_API_KEY` looks like: the worker claims every job
+and every job throws, and before 2026-10-17 this endpoint still said `ok`. Read
+each queue's `last_error` for the cause (`authentication_error` means the key).
+It answers `401` if the token is not the one Render holds.
 
 Read **`oldest_ready_seconds`**, not `ready`. A busy worker has a deep queue and
 a tiny age; a dead worker has an age that only climbs. `dead_letter` counts jobs

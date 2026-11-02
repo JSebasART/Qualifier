@@ -141,6 +141,139 @@ data, no code:
   block. `audit_log` was **not** shifted, so the history panels show the seeded
   entries at their real August timestamps.
 
+**2026-10-16: found paused, restored, and audited for sale.** The Supabase
+project was `INACTIVE`, so the live app was down and the orchestrator could not
+boot. It was restored from the connector and came back `ACTIVE_HEALTHY` with its
+data intact; all three services then answered 200. Nothing has been used since
+2026-09-13 (last sign-in and last audit row). The `qa/2026-10-02/` `BLK-5` run
+never reached production, and 5 seeded cases are overdue again. Nothing has been
+deployed since 2026-09-14. Full findings, what is missing to sell, and the
+website plan: [`audit/2026-10-16-sales-readiness.md`](audit/2026-10-16-sales-readiness.md).
+
+**2026-10-17: renamed Tramiq, live.** `web` `2c25b8e` (new wordmark and icon,
+the name in titles, loading and error screens) was promoted and went live about
+75 s after the push. Checked from outside: the sign-in page renders the logo,
+`/icon.svg` serves `image/svg+xml`, and the console shows no errors. The demo
+guide is in [`demo/DEMO.md`](demo/DEMO.md). The seeded dates were refreshed with
+`demo/refresh-demo-dates.sql` at 03:55 UTC. The newest application is now 3 h
+old, 4 open cases are overdue and 3 are on time, across both tenants, and issue
+dates run from 2026-09-13 to 2026-10-04. `audit_log` is untouched (19 rows), and
+the five triggers it disables inside the transaction are re-enabled. Re-run it
+the day before a demo.
+
+**2026-10-17: the Anthropic API key is invalid, so the AI pipeline cannot run.**
+The `BLK-5` QA, signed in as `admin-seguros@claude.test`, got further than ever
+through the UI:
+- client registered;
+- application `8d835edc` saved as a draft;
+- DUI and constancia uploaded, the per-file progress bar reaching 100%;
+- both `document.extract` jobs queued.
+
+Both jobs then failed at the Claude call with `401 authentication_error: invalid
+x-api-key` (`request_id` `req_011Cg7B3EyUFZnqdBpNiaMMy`). The key in
+`qualifier-secrets.env.txt` also gets 401 from `/v1/models`. `/health/queue`
+kept answering `ok`, because retrying jobs are not "ready", so it cannot see this
+failure. A new key is needed on the orchestrator's Render service. Then retry
+both documents and submit the application.
+
+**Later on 2026-10-17: with a new key, the first full pipeline run in production.**
+With the new key in place, both extractions completed on their scheduled retries.
+- **Constancia:** `monthly_income: 2400` as a number under the playbook's key,
+  and `issue_date 2026-09-28`.
+- **Labels:** every field carries a Spanish `label`.
+- **Score:** `application.process` completed. Rule score 80 (as expected), AI
+  score 65, final 76: tier "Estándar", `manual_review`. The case opened
+  unassigned, with a 48 h SLA.
+- **Cost:** `ai_usage` has rows for all three agents (extraction ×2,
+  consistency, risk_narrator): 9,611 input and 2,054 output tokens, about
+  US$0.06 per application at Sonnet 4.5 list prices.
+
+**Later still on 2026-10-17: every problem found was fixed, deployed and verified
+live.**
+
+- **Agents know today's date** (`ai-orchestrator` `5227491`). Rescored, the same
+  application went from AI 65, final 76 "Estándar" to **AI 100, final 86
+  "Preferente", approve**. There is no false signal, and the narrative now gets
+  the applicant's age right: 37, where the old run said 35.
+- **"Volver a puntuar" really rescores** (`ai-orchestrator` `4d650cf`, `web`
+  `655acb2`). It used to resume on the existing score and write nothing.
+- **`/health/queue` reports `failing` (503)** when a queue's recent attempts
+  all failed, with `last_error` (`7bd2b7b`). A dead API key is now visible.
+- **The anon key can no longer call `app_current_role()` or
+  `current_tenant_id()`** (`db` `76b222f`, migration `signed_in_only_policies`).
+  The 19 RLS policies that used them are scoped to `authenticated`. Rehearsed in
+  a forced-rollback transaction (10 checks), then applied. The advisor's
+  anon-execute warning is gone.
+- **UI clarity pass** (`web` `c6f79e6`, `4d4f300`):
+  - a glossary with hover and focus tooltips on every product term;
+  - the case screen in decision order, with the decision panel up top;
+  - the score explained as Reglas 80 × 70% + IA 100 × 30%;
+  - relative deadlines;
+  - the case queue's decision columns visible;
+  - a decluttered applications list;
+  - the playbook editor in Spanish, with stored keys unchanged.
+  Checked live in the browser, including a tooltip.
+- **The first real decision in production.** Signed in as
+  `admin-seguros@claude.test`, the QA case was approved with a note. The case is
+  `resolved`, the application `approved`, the comment authored by that account,
+  and `audit_log` has `case.approved` with that actor. Six `ai_usage` rows:
+  13,281 input and 2,731 output tokens across two scorings.
+
+**Later on 2026-10-17: the médico run, end to end, and what it broke.** Signed in
+as `admin-medico@claude.test`, with the `qa/2026-10-02/medico/` documents:
+- Client `46cac06f` registered, application `20e885b6` saved as a draft, and the
+  DUI, medical report and lab results uploaded and extracted cleanly
+  (`glucose_mg_dl 98`, `condition_count 1`, `bmi 27.4`, issue dates read).
+- **Scoring failed on every attempt** with a ZodError: the risk narrator
+  returned `warnings` and `notes` as strings, not arrays. Fixed in
+  `ai-orchestrator` `1d0509c`: the agents' four string lists accept a
+  serialized array or a bulleted paragraph and normalize it. The tool schema
+  shown to the model is unchanged.
+- **The form would have flagged a non-smoker.** "Fumador" was free text, so
+  `form_data.smoker` was the string `"No"`, and `applicant.smoker == false`
+  fails on it. Fixed twice:
+  - `ai-orchestrator` `d74bbba` reads a whole "Sí"/"No" answer as a boolean;
+  - `web` `2eed56c` makes yes/no fields a Sí/No select, saves numbers and
+    booleans typed, and labels `bmi` "IMC".
+- **A deploy orphaned the retry.** The old instance took it 17 s before being
+  replaced, and Render's 30 s drain was shorter than the job. pg-boss expired
+  it 15 min later, but only after a request woke the orchestrator. The free
+  tier had spun it down, because queue work is not traffic.
+- **Scored on the fixed code** at 06:35 UTC:
+  - rule score 70.875 (all 6 rules evaluated and passed), AI 98, final 80;
+  - tier B "Riesgo moderado", `manual_review`, as this playbook maps 65–84;
+  - one low-severity consistency note: the declared dependents are on no
+    document.
+- **Approved** with a note as `admin-medico@claude.test`. The case is
+  `resolved`, the application `approved`, and `audit_log` has `case.approved`
+  with that actor.
+- **Cost:** 12 `ai_usage` rows, 31,175 input and 6,739 output tokens (about
+  US$0.19). A clean run is 5 calls, about US$0.09. The three failed narrator
+  attempts and their consistency calls were billed too.
+- **UI fixes from reading the case** (`web` `714a739`, `8acfe6a`, `328f679`):
+  - the clients and applications tables pad their columns, which had run
+    together;
+  - the rule trace shows "-15 si no cumple" instead of a bare -15 beside
+    passing rules;
+  - the consistency notes, stored and never shown before, are listed with
+    their severity;
+  - the rule score shows one decimal.
+
+**Still open:**
+- **Queue work does not keep the orchestrator awake.** On the free tier,
+  a retry scheduled more than 15 minutes after the last request waits until
+  someone opens the app. Warm the services before a demo (`demo/DEMO.md`),
+  or move to `starter`.
+- **The secrets file.** Its `ANTHROPIC_API_KEY` is still the dead one; Render
+  has the new key.
+- **Your dashboard settings:** anonymous sign-ins off, leaked-password
+  protection on, Site URL.
+
+**Defect found (fixed above):** the consistency agent raised a false fraud signal. It called
+the constancia's issue date of 2026-09-28 "una fecha futura". The model does not
+know today's date, and that pulled the AI score down. The agents' prompts need
+the current date. Both tenants' runs and decisions are now done (above).
+
 ## 0. How we got here
 
 - **2026-09-06** — this file said the Supabase project had been deleted and
