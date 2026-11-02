@@ -1,0 +1,5 @@
+# Never line-ending-convert these. reportlab PDFs contain no NUL byte, so git
+# reads them as text, and autocrlf would rewrite their bytes on checkout.
+*.pdf binary
+*.png binary
+*.jpg binary
