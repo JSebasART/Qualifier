@@ -3,11 +3,15 @@
 -- applications from 3 hours to 10 days old. Run it the day of (or before) a
 -- demo, in the Supabase SQL editor of project jskuoazhcgfyetxrmxyi.
 --
+-- Needs db migration 20261102000000 (cases.sla_paused_at) applied first.
+--
 -- Re-runnable: the shift is measured from the data itself (the newest
 -- application should be 3 hours old), so a second run moves things ~0.
 --
 -- What it does not touch: audit_log (append-only by design; the history panels
--- keep their real timestamps), ai_usage, profiles, auth.
+-- keep their real timestamps, so a seeded case scored "16 oct" can show a
+-- history entry from August, and that is the price of an audit log nobody
+-- rewrites), ai_usage, profiles, auth. Application numbers stay as they are.
 --
 -- Five triggers are disabled inside the transaction and re-enabled before it
 -- ends; any failure rolls the disabling back too. Otherwise set_updated_at would
@@ -46,7 +50,10 @@ BEGIN
                      to_jsonb(to_char((extracted_data->>'issue_date')::date + ddays, 'YYYY-MM-DD')))
       ELSE extracted_data END;
   UPDATE scores        SET created_at = created_at + delta;
-  UPDATE cases         SET created_at = created_at + delta, updated_at = updated_at + delta, sla_due_at = sla_due_at + delta;
+  -- sla_paused_at (db 20261102000000) moves with the rest, so a paused case
+  -- resumes with the time it actually waited.
+  UPDATE cases         SET created_at = created_at + delta, updated_at = updated_at + delta, sla_due_at = sla_due_at + delta,
+                           sla_paused_at = sla_paused_at + delta;
   UPDATE case_comments SET created_at = created_at + delta;
 
   ALTER TABLE public.applications ENABLE TRIGGER applications_set_updated_at;
@@ -60,8 +67,10 @@ END $$;
 
 -- Check: expect the newest application ~3 h old, about 4 open cases overdue and
 -- 3 due within 48 h, and every issue_date inside its playbook's max_age_days.
+-- A case waiting on the applicant is paused, so it counts as neither.
 SELECT
   (SELECT round(extract(epoch from now() - max(created_at)) / 3600) FROM applications) AS newest_application_hours,
-  (SELECT count(*) FROM cases WHERE status <> 'resolved' AND sla_due_at < now())         AS open_cases_overdue,
-  (SELECT count(*) FROM cases WHERE status <> 'resolved' AND sla_due_at >= now())        AS open_cases_on_time,
+  (SELECT count(*) FROM cases WHERE status NOT IN ('resolved', 'waiting_on_applicant') AND sla_due_at < now())  AS open_cases_overdue,
+  (SELECT count(*) FROM cases WHERE status NOT IN ('resolved', 'waiting_on_applicant') AND sla_due_at >= now()) AS open_cases_on_time,
+  (SELECT count(*) FROM cases WHERE status = 'waiting_on_applicant')                                            AS open_cases_paused,
   (SELECT max(extracted_data->>'issue_date') FROM documents)                             AS newest_issue_date;
