@@ -3,7 +3,51 @@
 This file grew as a log. The headline below is current; everything after it is
 history, each part as true as its date.
 
-**Headline (2026-11-03).**
+**Headline (2026-11-03, evening).**
+
+- **The ten requests of 01:45 are in production since ~21:45 UTC.** The
+  migration went first: `20261103000000` (ledger `20261103214202
+  products_detail_deletion_client_sources`), after a rehearsal on production
+  that rolled itself back (24 of its 28 pgTAP assertions; the other 4 ran the
+  same way after it was applied). Then four repos were promoted: db
+  `486b0ef`, docs `0eae2df`, ai-orchestrator `e2decf7`, web `277571f`. The
+  previous `main`s were db `a6ff60e`, docs `14bacb2`, ai-orchestrator
+  `a87935a`, web `12f268d`; the migration has no down.
+- **The DUI error at 01:45 was the code's message, not the photo.** The
+  orchestrator had been asleep since 04:49 UTC and never received the read;
+  web turned whatever answered in its place into "una foto más nítida",
+  without a log. The route now retries once while the service wakes, logs
+  every refusal, and says what happened; the new-application form wakes the
+  orchestrator when it opens (`/api/ops/warm`). The orchestrator read the QA
+  DUI, both sides, correctly in 7 s that night.
+- **What shipped:**
+  - registering a client, an application or a product opens its own page
+    (`/clients/new`, `/applications/new`, `/products/new`);
+  - every editable phone has a country-code picker, and a client a country
+    picker; in El Salvador the official departamento, municipio (44) and
+    distrito (262) are lists, and a DUI's distrito finds its municipio;
+  - products are described in full: code, sums, ages, term, premium,
+    waiting period, coverages, exclusions;
+  - administrators delete clients, applications, cases, products and staff
+    accounts, through functions that decide and record it; an agent can no
+    longer delete a client from the browser, which `clients_write` allowed;
+  - a newer constancia or DUI updates the client (salary, employer,
+    occupation, address, estado familiar), and the client page says which
+    document set each value (`clients.field_sources`);
+  - a guided start for a product's first playbook;
+  - seguros has six more products, each with a published playbook (VIDA-T20,
+    GMM-IND, AUTO-AMP, HOGAR, DEUDA-PER, AP-IND), and its standard life plan
+    has its details. Loaded into production from the seed's own statements.
+- **Not seen signed in.** Verified by tsc, eslint, 147 web and 226
+  orchestrator tests, the web production build, grading-engine evaluating
+  every new playbook, and the deploys going live. Nobody has opened the new
+  screens with a session yet, and no document has updated a client live.
+- **Found in passing:** seguros' `grading_scale.labels` are `A`–`D`, but its
+  seeded playbooks map tiers to "Preferente"…"Rechazo", which the editor's
+  check calls an error. The new catalogue follows the existing playbook; the
+  guided start follows the tenant's scale. One of the two should change.
+
+**Headline (2026-11-03, early morning)** (history).
 
 - **Everything on `develop` is in production since 2026-11-03 ~01:23 UTC.**
   The migration went first: `20261102000000` (ledger `20261103012022
