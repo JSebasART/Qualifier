@@ -30,10 +30,27 @@ history, each part as true as its date.
   - a document with no file says so.
   Also the 2026-10-30 work: applicant notifications and draft purging without
   waiting for the clock, zod 4, and CI on actions v5.
-- **Checked from outside only.** `/health/queue` is `ok`, the new
-  `/api/identity/read` refuses a caller with no session (401), and the
-  sign-in page renders. Nobody has signed in since the deploy, so the new
-  screens are unseen live.
+- **Tested end to end, signed in as admin-seguros, at ~01:38 UTC.** Seguros
+  N.º 12 (Karla, the QA fixtures) went through the new form: DUI read, client
+  found, documents chosen, sent. On Sonnet 5.5 it took 4 s per document read,
+  scoring 74 s after sending (45 of them waking the grading-engine), and
+  US$0.059 across four calls. It found four problems, fixed and deployed by
+  01:51 (ai-orchestrator `156cfc1`, grading-engine `f6a4ee5`, web
+  `fb6909b`):
+  - Sonnet 5.5 echoed a document id as `<uuid>Fecha`, because adjacent prompt
+    text blocks run together. The consistency agent called it a fraud signal.
+    Blocks are now separated, and the row's id overrides the echo. A re-read
+    stored the right id.
+  - The tier was read from the unrounded score: 84.5 came back as 85 in tier B
+    under an "A from 85" playbook. The score is now one decimal and tiered as
+    shown. The deployed engine returns 84.5, tier B.
+  - In the form, the document type picker stayed on "DUI" after the card was
+    read, and there was a space before a period. Both fixed and seen live.
+- **The QA constancia has a blank signature line.** On the re-read, Sonnet
+  5.5 flagged it ("no se observa firma ni sello de la empresa"); the first
+  read had not. N.º 12's constancia is `flagged` now, so a rescore would
+  block it. Give `qa/2026-10-02/make_fixtures.py` a signature and a stamp
+  before the next QA run.
 - **Still open:**
   - The database password was printed into a working session on 2026-11-02:
     rotate it, then update `DATABASE_URL` on the orchestrator and the
