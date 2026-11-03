@@ -16,6 +16,7 @@ from datetime import date
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
+from reportlab import rl_config
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_JUSTIFY, TA_RIGHT
 from reportlab.lib.pagesizes import letter
@@ -25,6 +26,10 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.platypus import Flowable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 OUT = Path(__file__).resolve().parent
+
+# Same bytes on every run: no creation date or random document id in the PDFs,
+# so regenerating changes a file only when what it shows changes.
+rl_config.invariant = 1
 FONTS = Path(r"C:\Windows\Fonts")
 
 
@@ -44,6 +49,11 @@ KARLA = {
     "dui": dui("05392718"),
     "issued": date(2022, 5, 17),
     "expires": date(2030, 5, 16),
+    "address": "RESIDENCIAL LAS MARGARITAS, PASAJE 4, CASA 17",
+    "municipio": "SANTA TECLA",
+    "departamento": "LA LIBERTAD",
+    "estado_familiar": "SOLTERA",
+    "profesion": "LICENCIADA EN ADMINISTRACIÓN DE EMPRESAS",
 }
 JOSE = {
     "apellidos": "MENJÍVAR PORTILLO",
@@ -55,6 +65,11 @@ JOSE = {
     "dui": dui("03871264"),
     "issued": date(2023, 2, 8),
     "expires": date(2031, 2, 7),
+    "address": "COLONIA CIUDAD JARDÍN, CALLE LOS ALMENDROS, CASA 9",
+    "municipio": "SAN MIGUEL",
+    "departamento": "SAN MIGUEL",
+    "estado_familiar": "CASADO",
+    "profesion": "TÉCNICO EN MANTENIMIENTO INDUSTRIAL",
 }
 
 MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
@@ -111,6 +126,38 @@ def id_card(person: dict, path: Path) -> None:
     d.text((735, 500), card_date(person["expires"]), font=value, fill="#111111")
     d.line([330, 590, 700, 590], fill="#4a6278", width=2)
     d.text((330, 596), "FIRMA DEL TITULAR", font=ImageFont.truetype(str(FONTS / "arial.ttf"), 16), fill="#4a6278")
+    img.save(path)
+
+
+def id_card_back(person: dict, path: Path) -> None:
+    """The reverso: where the person lives, and their estado familiar and
+    profession. Same plain card as the front, no emblem or security features."""
+    w, h = 1012, 638
+    img = Image.new("RGB", (w, h), "white")
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle([4, 4, w - 5, h - 5], radius=36, fill="#eef3f7", outline="#9db3c6", width=3)
+    d.rectangle([4, 96, w - 5, 100], fill="#2f5f8a")
+
+    bold = ImageFont.truetype(str(FONTS / "arialbd.ttf"), 30)
+    label = ImageFont.truetype(str(FONTS / "arial.ttf"), 19)
+    value = ImageFont.truetype(str(FONTS / "arialbd.ttf"), 26)
+    d.text((w // 2, 52), "DOCUMENTO ÚNICO DE IDENTIDAD · REVERSO", font=bold, fill="#1f3f5f", anchor="mm")
+
+    rows = [
+        ("DIRECCIÓN DE RESIDENCIA", person["address"]),
+        ("MUNICIPIO", person["municipio"]),
+        ("DEPARTAMENTO", person["departamento"]),
+        ("ESTADO FAMILIAR", person["estado_familiar"]),
+        ("PROFESIÓN U OFICIO", person["profesion"]),
+    ]
+    x, y = 48, 128
+    for k, v in rows:
+        d.text((x, y), k, font=label, fill="#4a6278")
+        d.text((x, y + 22), v, font=value, fill="#111111")
+        y += 70
+
+    d.text((48, 500), "NÚMERO DE DUI", font=label, fill="#4a6278")
+    d.text((48, 522), person["dui"], font=ImageFont.truetype(str(FONTS / "arialbd.ttf"), 34), fill="#111111")
     img.save(path)
 
 
@@ -346,8 +393,10 @@ if __name__ == "__main__":
     (OUT / "seguros").mkdir(parents=True, exist_ok=True)
     (OUT / "medico").mkdir(parents=True, exist_ok=True)
     id_card(KARLA, OUT / "seguros" / "dui-karla-hernandez.png")
+    id_card_back(KARLA, OUT / "seguros" / "dui-karla-hernandez-reverso.png")
     salary_certificate(OUT / "seguros" / "constancia-salario-karla-hernandez.pdf")
     id_card(JOSE, OUT / "medico" / "dui-jose-menjivar.png")
+    id_card_back(JOSE, OUT / "medico" / "dui-jose-menjivar-reverso.png")
     lab_results(OUT / "medico" / "resultados-laboratorio-jose-menjivar.pdf")
     medical_report(OUT / "medico" / "informe-medico-jose-menjivar.pdf")
     print("Karla DUI", KARLA["dui"], "| José DUI", JOSE["dui"])

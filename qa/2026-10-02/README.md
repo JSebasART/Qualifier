@@ -10,14 +10,16 @@ Each PDF is signed and carries its invented issuer's round stamp. Until
 constancia for it ("no se observa firma ni sello de la empresa"), so it no
 longer counted as a required document.
 
-Upload one file at a time: a multi-file drop gives every file the same type.
+Each DUI has a front and a back (`-reverso`). Choose both at once in «Subir DUI» or in the
+document list's DUI row: the form joins them into one image, and the back fills the
+client's address, profession and estado familiar. Other documents go one per row.
 
 ## seguros — Seguro de Vida, Plan Estándar
 
 | Client | Karla Beatriz Hernández Quintanilla, DUI 05392718-8, born 1989-07-23 |
 | --- | --- |
 | Form | `date_of_birth` 1989-07-23 · `monthly_income` 2400 · `coverage_amount` 30000 |
-| `national_id` | `seguros/dui-karla-hernandez.png` |
+| `national_id` | `seguros/dui-karla-hernandez.png` + `seguros/dui-karla-hernandez-reverso.png` (Residencial Las Margaritas, Santa Tecla, La Libertad; soltera; licenciada en administración de empresas) |
 | `proof_of_income` | `seguros/constancia-salario-karla-hernandez.pdf`, issued 2026-09-28; meets the 90-day limit until 2026-12-27 |
 
 Expected: every rule passes. `base_income_score` = min(2400/3000, 1) × 100 = 80,
@@ -30,7 +32,7 @@ the rule to 96 and the case toward tier A.
 | Client | José Alberto Menjívar Portillo, DUI 03871264-9, born 1984-11-02 |
 | --- | --- |
 | Form | `date_of_birth` 1984-11-02 · `bmi` 27.4 · `smoker` "No" (as staff would type it) · `dependents` 2 |
-| `national_id` | `medico/dui-jose-menjivar.png` |
+| `national_id` | `medico/dui-jose-menjivar.png` + `medico/dui-jose-menjivar-reverso.png` (Colonia Ciudad Jardín, San Miguel; casado; técnico en mantenimiento industrial) |
 | `lab_results` | `medico/resultados-laboratorio-jose-menjivar.pdf`, issued 2026-09-23, fasting glucose 98 mg/dL |
 | `medical_report` | `medico/informe-medico-jose-menjivar.pdf`, dated 2026-08-30, one chronic condition, non-smoker |
 
