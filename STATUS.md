@@ -1,10 +1,49 @@
-# Status — verified 2026-10-30
+# Status — verified 2026-11-03
 
 This file grew as a log. The headline below is current; everything after it is
-history, each part as true as its date. The newest evidence is § 2's entries for
-2026-10-29: the self-service migrations, the promotion and the deploy.
+history, each part as true as its date.
 
-**Headline (2026-10-30).**
+**Headline (2026-11-03).**
+
+- **Everything on `develop` is in production since 2026-11-03 ~01:23 UTC.**
+  The migration went first: `20261102000000` (ledger `20261103012022
+  submit_decide_deadlines_numbers`), after a rehearsal on production that
+  rolled itself back. Then all five repos were promoted: docs `14bacb2`, db
+  `a6ff60e`, grading-engine `09a0c19`, ai-orchestrator `1f4a206`, web
+  `db29c85`. Render had each service live within 70 s. To roll back, the
+  previous `main`s were docs `5e518b8`, db `278fdb7`, grading-engine `982f9a5`,
+  ai-orchestrator `8503b9e` and web `8e43aee`, and the migration has no down.
+- **The default model is Sonnet 5.5**, four weeks before Sonnet 4.5 retires
+  (2026-11-30). The blueprint sync set `MODEL_DEFAULT=claude-sonnet-5-5`. The
+  first live call was a DUI read of the QA fixture through the new
+  `/identity/read`: every field right, one call, no refusal, 3,009 in and 734
+  out tokens, US$0.0134, 5.4 s. **The full pipeline (consistency, narrator,
+  scoring) has not run on 5.5 yet**; the next submitted application is the
+  first.
+- **What shipped**, from the 2026-11-02 review and requests:
+  - an application cannot be sent without its required documents;
+  - deciding with no score, or against the recommendation, needs a note;
+  - a case waiting on the applicant has its deadline paused;
+  - applications are numbered per tenant ("N.º 7");
+  - a new application starts from the client's DUI, or registers the client
+    in the form, and takes every document before it is saved or sent;
+  - a document with no file says so.
+  Also the 2026-10-30 work: applicant notifications and draft purging without
+  waiting for the clock, zod 4, and CI on actions v5.
+- **Checked from outside only.** `/health/queue` is `ok`, the new
+  `/api/identity/read` refuses a caller with no session (401), and the
+  sign-in page renders. Nobody has signed in since the deploy, so the new
+  screens are unseen live.
+- **Still open:**
+  - The database password was printed into a working session on 2026-11-02:
+    rotate it, then update `DATABASE_URL` on the orchestrator and the
+    secrets file.
+  - Supabase Auth: anonymous sign-ins on, leaked-password protection off.
+  - Demo data: run `demo/refresh-demo-dates.sql` before a demo. None of the
+    28 seeded documents has a file in Storage, so they cannot be opened. The
+    seeded clients' DUIs fail the check digit.
+
+**Headline of 2026-10-30** (history).
 
 - **Self-service intake (`FUN-11`), all five phases, is in production since
   2026-10-29.** The migrations went first, after a rehearsal on production
