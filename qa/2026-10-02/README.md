@@ -5,6 +5,11 @@ no emblem, issuer branding or security features. Nothing is stamped "ficticio",
 because the extraction agent treats a stamp like that as tampering and blocks
 scoring (the 2026-09-13 run). Regenerate with `python make_fixtures.py`.
 
+Each PDF is signed and carries its invented issuer's round stamp. Until
+2026-11-03 the signature lines were blank, and Sonnet 5.5 flagged the
+constancia for it ("no se observa firma ni sello de la empresa"), so it no
+longer counted as a required document.
+
 Upload one file at a time: a multi-file drop gives every file the same type.
 
 ## seguros — Seguro de Vida, Plan Estándar

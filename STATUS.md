@@ -46,11 +46,13 @@ history, each part as true as its date.
     shown. The deployed engine returns 84.5, tier B.
   - In the form, the document type picker stayed on "DUI" after the card was
     read, and there was a space before a period. Both fixed and seen live.
-- **The QA constancia has a blank signature line.** On the re-read, Sonnet
-  5.5 flagged it ("no se observa firma ni sello de la empresa"); the first
-  read had not. N.º 12's constancia is `flagged` now, so a rescore would
-  block it. Give `qa/2026-10-02/make_fixtures.py` a signature and a stamp
-  before the next QA run.
+- **The QA PDFs are signed and stamped now** (`qa/2026-10-02/make_fixtures.py`).
+  Sonnet 5.5 had flagged the constancia's blank signature line on a re-read
+  ("no se observa firma ni sello de la empresa"), so N.º 12's constancia is
+  `flagged` and a rescore of N.º 12 would block it. **N.º 13** used the
+  regenerated constancia at 02:01 UTC: both documents clean, no fraud signal,
+  rules 80 + AI 97 = **85.1 "Preferente", approve**. It was 29 s from sending
+  to case, cost US$0.055, and is the clean seguros case to show.
 - **Still open:**
   - The database password was printed into a working session on 2026-11-02:
     rotate it, then update `DATABASE_URL` on the orchestrator and the

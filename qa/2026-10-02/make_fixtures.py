@@ -4,7 +4,14 @@ Invented people, invented employer, clinic and lab. Nothing here copies an
 official design: the ID card is a plain data card with no emblem, issuer
 branding or security features. No "ficticio" stamp either - the 2026-09-13 run
 showed the extraction agent treats one as tampering and blocks scoring.
+
+Each PDF is signed and stamped by whoever issued it. On 2026-11-03 Sonnet 5.5
+flagged the constancia's blank signature line ("no se observa firma ni sello de
+la empresa"), which made it stop counting as a required document. The stamps
+carry the invented issuer's own name, never a real body's.
 """
+import math
+import random
 from datetime import date
 from pathlib import Path
 
@@ -14,7 +21,8 @@ from reportlab.lib.enums import TA_JUSTIFY, TA_RIGHT
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.pdfbase.pdfmetrics import stringWidth
+from reportlab.platypus import Flowable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 OUT = Path(__file__).resolve().parent
 FONTS = Path(r"C:\Windows\Fonts")
@@ -129,6 +137,98 @@ def rule() -> Table:
     return t
 
 
+class SignedAndStamped(Flowable):
+    """A handwritten-looking signature on the line, and the issuer's round stamp beside it.
+
+    The signature is loops of Bezier curves from a seed, so each signer's is
+    the same on every run. The stamp is two rings with the issuer's name around
+    them and a word in the middle, in stamp-pad violet, a little crooked.
+    """
+
+    INK = colors.HexColor("#1b2a6b")
+    STAMP = colors.HexColor("#4b3fa0")
+
+    def __init__(self, seed: str, ring: str, centre: str):
+        super().__init__()
+        self.seed, self.ring, self.centre = seed, ring, centre
+        self.width, self.height = 16.5 * cm, 3.2 * cm
+
+    def wrap(self, available_width, available_height):
+        return self.width, self.height
+
+    def draw(self):
+        c = self.canv
+        line_y = 0.55 * cm
+        c.setStrokeColor(colors.black)
+        c.setLineWidth(0.6)
+        c.line(0, line_y, 6.2 * cm, line_y)
+        self._signature(c, x0=0.4 * cm, y0=line_y + 0.35 * cm)
+        self._stamp(c, cx=8.0 * cm, cy=1.65 * cm, radius=1.35 * cm)
+
+    def _signature(self, c, x0: float, y0: float):
+        rng = random.Random(self.seed)
+        c.saveState()
+        c.translate(x0, y0)
+        # Handwriting leans right.
+        c.transform(1, 0, 0.32, 1, 0, 0)
+        c.setStrokeColor(self.INK)
+        c.setLineWidth(1.1)
+        c.setLineCap(1)
+        c.setLineJoin(1)
+        path = c.beginPath()
+        # A tall initial, then lower letters of uneven height and width, the
+        # way a name trails off when it is signed fast.
+        path.moveTo(0, 0.15 * cm)
+        path.curveTo(0.1 * cm, 1.9 * cm, 0.7 * cm, 1.9 * cm, 0.45 * cm, 0.1 * cm)
+        x, y = 0.45 * cm, 0.1 * cm
+        for i in range(rng.randint(5, 7)):
+            dx = rng.uniform(0.22, 0.5) * cm
+            rise = rng.uniform(0.35, 0.95) * cm * (1 - i * 0.07)
+            path.curveTo(x + dx * 0.1, y + rise, x + dx * 0.8, y + rise * rng.uniform(0.6, 1.0), x + dx * 0.5, y + 0.05 * cm)
+            path.curveTo(x + dx * 0.35, y - 0.12 * cm, x + dx * 0.9, y - 0.1 * cm, x + dx, y + rng.uniform(-0.06, 0.1) * cm)
+            x, y = x + dx, y + rng.uniform(-0.05, 0.05) * cm
+        # The stroke back across the name, and off the end.
+        path.curveTo(x + 0.5 * cm, y + 0.3 * cm, x * 0.55, 0.55 * cm, -0.15 * cm, 0.35 * cm)
+        c.drawPath(path, stroke=1, fill=0)
+        c.restoreState()
+
+    def _stamp(self, c, cx: float, cy: float, radius: float):
+        c.saveState()
+        c.translate(cx, cy)
+        c.rotate(-11)
+        c.setStrokeColor(self.STAMP)
+        c.setFillColor(self.STAMP)
+        c.setStrokeAlpha(0.85)
+        c.setFillAlpha(0.85)
+        c.setLineWidth(1.6)
+        c.circle(0, 0, radius, stroke=1, fill=0)
+        c.setLineWidth(0.7)
+        c.circle(0, 0, radius * 0.66, stroke=1, fill=0)
+        self._ring_text(c, self.ring.upper(), radius * 0.83, "Helvetica-Bold", 6)
+        # The middle word or words, one per line, inside the inner ring.
+        size, lines = 6.4, self.centre.upper().split()
+        c.setFont("Helvetica-Bold", size)
+        top = (len(lines) - 1) * size * 1.15 / 2
+        for i, line in enumerate(lines):
+            c.drawCentredString(0, top - i * size * 1.15 - size / 3, line)
+        c.restoreState()
+
+    @staticmethod
+    def _ring_text(c, text: str, radius: float, font: str, size: float):
+        """Characters around the circle, clockwise, centred on the top."""
+        c.setFont(font, size)
+        widths = [stringWidth(ch, font, size) for ch in text]
+        angle = math.pi / 2 + sum(widths) / radius / 2
+        for ch, w in zip(text, widths):
+            angle -= w / 2 / radius
+            c.saveState()
+            c.translate(radius * math.cos(angle), radius * math.sin(angle))
+            c.rotate(math.degrees(angle) - 90)
+            c.drawCentredString(0, -size / 3, ch)
+            c.restoreState()
+            angle -= w / 2 / radius
+
+
 def salary_certificate(path: Path) -> None:
     issued = date(2026, 9, 28)
     story = [
@@ -155,8 +255,8 @@ def salary_certificate(path: Path) -> None:
         Paragraph(
             "Se extiende la presente a solicitud de la interesada, para los usos que estime convenientes, en la "
             "ciudad de San Salvador, a los veintiocho días del mes de septiembre de dos mil veintiséis.", BODY),
-        Spacer(1, 60),
-        Paragraph("______________________________", BODY),
+        Spacer(1, 14),
+        SignedAndStamped("Marta Elisa Rivas Durán", "Grupo Comercial Nubeluna, S.A. de C.V.", "Recursos Humanos"),
         Paragraph("Lcda. Marta Elisa Rivas Durán", LABEL),
         Paragraph("Gerente de Recursos Humanos", BODY),
         Paragraph("Grupo Comercial Nubeluna, S.A. de C.V.", BODY),
@@ -199,8 +299,8 @@ def lab_results(path: Path) -> None:
         Paragraph("INFORME DE RESULTADOS — QUÍMICA SANGUÍNEA", TITLE),
         Spacer(1, 8), patient, Spacer(1, 16), results, Spacer(1, 14),
         Paragraph("Muestra de sangre venosa tomada tras ayuno de 10 horas.", SMALL),
-        Spacer(1, 46),
-        Paragraph("______________________________", BODY),
+        Spacer(1, 6),
+        SignedAndStamped("Sofía Margarita Chávez Ayala", "Laboratorio Clínico Valle Sereno", "Validado"),
         Paragraph("Lic. Sofía Margarita Chávez Ayala", LABEL),
         Paragraph("Química Clínica — Responsable de validación", BODY),
     ]
@@ -234,8 +334,8 @@ def medical_report(path: Path) -> None:
         Paragraph("1. Hipertensión arterial esencial, controlada.", BODY),
         Spacer(1, 8),
         Paragraph("Total de condiciones crónicas activas: 1.", BODY),
-        Spacer(1, 56),
-        Paragraph("______________________________", BODY),
+        Spacer(1, 10),
+        SignedAndStamped("Ricardo Ernesto Alfaro Mejía", "Consultorio Dr. R. E. Alfaro Mejía", "Medicina Interna"),
         Paragraph("Dr. Ricardo Ernesto Alfaro Mejía", LABEL),
         Paragraph("Medicina Interna", BODY),
     ]
