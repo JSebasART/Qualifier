@@ -53,6 +53,17 @@ history, each part as true as its date.
   regenerated constancia at 02:01 UTC: both documents clean, no fraud signal,
   rules 80 + AI 97 = **85.1 "Preferente", approve**. It was 29 s from sending
   to case, cost US$0.055, and is the clean seguros case to show.
+- **The staff UI was reshaped on request and deployed at ~02:57 UTC** (web
+  `fcac105`, with `107441a`), and was seen live as admin-seguros:
+  - The menu has **Productos** and **Configuración** in place of
+    "Empresas", which is now the superadmin's only. A product's page holds
+    its form, its playbook and the documents it requires (marked Obligatorio
+    or Opcional), automatic approval, and its links. Configuración holds the
+    brand, own domain and privacy notice.
+  - The new-application form starts from the product. The client is a new
+    one by default; a search (accent-blind: "hernandez" finds "Hernández")
+    and «Subir DUI» find a registered one. The documents are a list of
+    required and optional rows.
 - **Still open:**
   - The database password was printed into a working session on 2026-11-02:
     rotate it, then update `DATABASE_URL` on the orchestrator and the
