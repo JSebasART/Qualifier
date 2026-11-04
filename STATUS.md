@@ -3,7 +3,35 @@
 This file grew as a log. The headline below is current; everything after it is
 history, each part as true as its date.
 
-**Headline (2026-11-03, evening).**
+**Headline (2026-11-04, ~05:05 UTC).**
+
+- **Three more requests are in production.** The migration went first:
+  `20261104000000` (ledger `document_age_acceptance_checklists`), after its 21
+  pgTAP assertions passed on production in a transaction that rolled itself
+  back. Then db `5b5f668`, docs `321431f`, ai-orchestrator `2f536ae` and web
+  `7839c37` were promoted. The previous `main`s are the four listed below.
+- **An analyst can accept an outdated document.** Application 14 (seguros)
+  was sent with a constancia issued 2026-07-24, 103 days old against a 90-day
+  limit. Sending was never blocked; scoring was, with no way forward but a new
+  letter. Now a draft warns and can still be sent, and an underwriter or
+  administrator can press "Aceptar de todos modos" on the requirement list,
+  give a reason, and the application is rescored with it
+  (`accept_document_age()`). The score says so
+  (`rationale.accepted_outdated_documents`), and `auto_decide_case()` refuses
+  it. **Application 14 has not been accepted yet**; it is waiting for the user
+  to do it from its page.
+- **The distrito is found by typing it**, and fills its municipio and
+  departamento.
+- **Declared conditions are a checklist** (`multiselect`, a new form field
+  type; `count`, a new playbook transform). Production's GMM-IND asks it that
+  way and scores with **playbook version 2** (`...0037`, published from v1
+  plus `"transform": "count"`; v1 is archived). The seed instead edits
+  playbook `...0032` in place, so a fresh database has one version where
+  production has two.
+- **Not seen signed in**, again: verified by web's 156 tests, tsc, eslint and
+  build, the orchestrator's 234 tests, grading-engine's 58, and the pgTAP run.
+
+**Headline (2026-11-03, evening)** (history).
 
 - **The ten requests of 01:45 are in production since ~21:45 UTC.** The
   migration went first: `20261103000000` (ledger `20261103214202
