@@ -1,25 +1,41 @@
-# Status — verified 2026-11-03
+# Status — verified 2026-11-06
 
 This file grew as a log. The headline below is current; everything after it is
 history, each part as true as its date.
 
-**Headline (2026-11-06).**
+**Headline (2026-11-06, ~06:55 UTC).**
 
-- **The 2026-11-05 audit's S and M findings are fixed and committed on
-  `develop`, not pushed and not deployed** ([`audit/2026-11-05-five-viewpoints-audit.md`](audit/2026-11-05-five-viewpoints-audit.md)
-  § 0): db `93c656f`, grading-engine `89dcaca`, ai-orchestrator `7129635`,
-  web `8390cf7`, docs `14d0e69`. Migration `20261106000000_audit_fixes` must
-  reach production first; it has not been rehearsed there.
-- What changes for a user: the case screen shows declared against verified
-  values and decides with conditions, reasons, authority limits and referral;
-  the AI score is a fixed rubric; a rule reads the same document the
-  requirement check accepted; stuck submissions are swept; applicants see what
-  was read from each upload; the dashboard shows outcomes, not only counts.
-- Verified by grading-engine 66, ai-orchestrator 289 and web 207 tests, web's
-  typecheck, lint and production build, and a PGlite replay of db CI (16
-  suites, 454 assertions). **Not seen in a browser or against the real model.**
-- Also on web `develop`, unpushed, under `8390cf7`: `e5dd311`, which wakes a sleeping service
-  instead of taking Render's stand-in page for its answer.
+- **The 2026-11-05 audit's S and M fixes are in production**
+  ([`audit/2026-11-05-five-viewpoints-audit.md`](audit/2026-11-05-five-viewpoints-audit.md)
+  § 0). The migration went first:
+  - It was rehearsed on production inside one transaction that raised at the end, so nothing stayed. 82 of 82 pgTAP assertions passed, and so did the compatibility checks for the web build then live:
+    - the 3-argument `decide_case` still worked;
+    - draft playbooks could still be inserted and edited;
+    - a direct `status` update was refused.
+  - Then it was applied: ledger `20261106063843 audit_fixes`.
+  - Then all five repos were promoted (db `93c656f`, grading-engine `89dcaca`, ai-orchestrator `7129635`, web `8390cf7`, docs `14d0e69`).
+  - The previous `main`s, to roll back to: db `5b5f668`, grading-engine `f6a4ee5`, ai-orchestrator `2f536ae`, web `7839c37`, docs `321431f`.
+- **Checked live after the deploy:**
+  - `case_decisions` holds the 5 past decisions, backfilled from `audit_log`.
+  - No SECURITY DEFINER function is executable by `anon`, the sweep is service_role only, and the vestigial storage policy is gone.
+  - The orchestrator's boot sweep found the three stuck submissions. N.º 11 and seguros N.º 6 became blocked manual-review cases (no documents), with no model call.
+  - **médico N.º 6 is still stuck.** Its only document (`2d…0028`) has been `uploaded` with no file in Storage since 2026-10-29. The sweep only re-reads documents whose file exists, and processing defers while a document is unread. Being fixed on `develop` (round 2).
+  - A rescore of `5553aece…` (seguros, QA) at 06:50 stored:
+    - `engine`: grading-engine `0.1.0+89dcaca`, `claude-sonnet-5-5` for both agents, `rubric-v1`;
+    - `inputs`: source, confidence and document id for each value;
+    - an AI score of 90 from the rubric, next to the model's 88.
+  - That same rescore shows the production playbooks still need republishing. VIDA-STD v1 still ranks by income size: a US$700 earner gets a rule score of 24.5 and lands in Subestándar. The rewritten sample definitions are only in the seed.
+  - `/s/ingreso-auto` serves the new closed state and per-insurer metadata. grading-engine `/health` answers ok.
+- **Not seen in a browser signed in.** The staff screens need the owner to sign in in the browser pane.
+- **Round 2, the findings left open by round 1, is in progress on `develop`:**
+  - V-7, the editor rebuild with backtest;
+  - bots 4, 5, 6, 7, 8 and 9;
+  - V-15, demo files and date refresh;
+  - `required_if`;
+  - removing `/analyze`;
+  - staff MFA;
+  - orphaned documents;
+  - the round-1 caveats.
 
 **Headline (2026-11-04, ~05:05 UTC)** (history).
 
