@@ -3,7 +3,25 @@
 This file grew as a log. The headline below is current; everything after it is
 history, each part as true as its date.
 
-**Headline (2026-11-04, ~05:05 UTC).**
+**Headline (2026-11-06).**
+
+- **The 2026-11-05 audit's S and M findings are fixed and committed on
+  `develop`, not pushed and not deployed** ([`audit/2026-11-05-five-viewpoints-audit.md`](audit/2026-11-05-five-viewpoints-audit.md)
+  § 0): db `93c656f`, grading-engine `89dcaca`, ai-orchestrator `7129635`,
+  web `8390cf7`, docs `14d0e69`. Migration `20261106000000_audit_fixes` must
+  reach production first; it has not been rehearsed there.
+- What changes for a user: the case screen shows declared against verified
+  values and decides with conditions, reasons, authority limits and referral;
+  the AI score is a fixed rubric; a rule reads the same document the
+  requirement check accepted; stuck submissions are swept; applicants see what
+  was read from each upload; the dashboard shows outcomes, not only counts.
+- Verified by grading-engine 66, ai-orchestrator 289 and web 207 tests, web's
+  typecheck, lint and production build, and a PGlite replay of db CI (16
+  suites, 454 assertions). **Not seen in a browser or against the real model.**
+- Also on web `develop`, unpushed, under `8390cf7`: `e5dd311`, which wakes a sleeping service
+  instead of taking Render's stand-in page for its answer.
+
+**Headline (2026-11-04, ~05:05 UTC)** (history).
 
 - **Three more requests are in production.** The migration went first:
   `20261104000000` (ledger `document_age_acceptance_checklists`), after its 21
