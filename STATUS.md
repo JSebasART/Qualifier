@@ -27,15 +27,17 @@ history, each part as true as its date.
   - That same rescore shows the production playbooks still need republishing. VIDA-STD v1 still ranks by income size: a US$700 earner gets a rule score of 24.5 and lands in Subestándar. The rewritten sample definitions are only in the seed.
   - `/s/ingreso-auto` serves the new closed state and per-insurer metadata. grading-engine `/health` answers ok.
 - **Not seen in a browser signed in.** The staff screens need the owner to sign in in the browser pane.
-- **Round 2, the findings left open by round 1, is in progress on `develop`:**
-  - V-7, the editor rebuild with backtest;
-  - bots 4, 5, 6, 7, 8 and 9;
-  - V-15, demo files and date refresh;
+- **Round 2 is committed on `develop` (db `2d3d58f`, grading-engine `9a6a746`, ai-orchestrator `a7d77ae`, web `063f036`, docs `a61f930`), not pushed and not deployed.** It covers the findings round 1 left open (audit § 0, "Round 2"):
+  - V-7, the editor rebuild with backtest and copilot;
+  - bots 4–9;
+  - V-15;
   - `required_if`;
   - removing `/analyze`;
   - staff MFA;
   - orphaned documents;
   - the round-1 caveats.
+
+  Verified by grading-engine 70, ai-orchestrator 393 and web 236 tests, web's build, and a PGlite replay of 19 suites (610 assertions). Its three migrations (`20261107000000`, `…0100`, `…0200`) need the same rehearse-then-apply as round 1.
 
 **Headline (2026-11-04, ~05:05 UTC)** (history).
 

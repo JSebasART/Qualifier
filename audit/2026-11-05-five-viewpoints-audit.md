@@ -12,12 +12,12 @@ Findings here are numbered `V-1`…`V-24`.
 the sign-in page and the public product link were opened in a browser. A
 signed-in walk-through is listed in § 8.
 
-## 0. Fixed on 2026-11-06 (on `develop`, not committed, not deployed)
+## 0. Fixed on 2026-11-06 (round 1: in production since 06:40 UTC)
 
 Every finding rated S or M is fixed in code, plus bots 1 and 2 of § 7.
-Nothing is applied to production. The migration
-(`db/supabase/migrations/20261106000000_audit_fixes.sql`) must go first, then
-the four services, in the usual order (RUNBOOK.md).
+Migration `20261106000000_audit_fixes` was rehearsed on production in a
+transaction that rolled itself back, applied (ledger `20261106063843`), and
+the five repos promoted; STATUS.md records the live checks.
 
 | Finding | Fixed in | How |
 | --- | --- | --- |
@@ -47,11 +47,45 @@ seeded playbooks parse and evaluate in grading-engine with no unevaluated rule.
 **Not verified:** a real pgTAP run on Postgres 17, any screen in a browser, and
 the pipeline against the real model.
 
-**Left open:** V-7 (the editor rebuild, L); V-17 and every infrastructure item
-(paid tiers, `BLK-4`); the production data steps (renaming the
-`ingreso-auto` link, republishing the production playbooks, closing the three
-stuck applications, which the sweep will process once deployed); bots 4–10
-(bot 3 is V-10).
+**Left open after round 1:**
+- V-7, the editor rebuild (L);
+- V-17 and every infrastructure item (paid tiers, `BLK-4`);
+- the production data steps: renaming the `ingreso-auto` link, republishing the production playbooks, and closing the three stuck applications. The deployed sweep closed two of the three.
+- bots 4–10 (bot 3 is V-10).
+
+### Round 2 (2026-11-07, committed on `develop`, not pushed, not deployed)
+
+| Finding | Fixed in | How |
+| --- | --- | --- |
+| V-5, found live | db, orchestrator | A received document with no file after 30 minutes (`orphan`), or stuck reading past 2 hours (`stalled`), is closed with a reason, so its application goes to manual review instead of waiting forever. médico N.º 6 is that case. |
+| V-7 | web, orchestrator, grading-engine | Pickers from the form schema and document keys; a rule builder (campo · operador · valor) with the expression as «Avanzado»; «Probar con una solicitud»; a backtest over past applications with no model call; lint inline |
+| V-15 | web, db, orchestrator, `qa/demo-files` | A missing file shows a calm state; `upload_demo_files.py` (dry run by default) fills the seeded rows' files; `tenants.is_demo` with a nightly date refresh |
+| `required_if` | db, orchestrator, web | Evaluated the same way in all three, failing closed |
+| `/analyze` | ai-orchestrator | Removed, along with the in-process pipeline runner only it used |
+| Injection test | ai-orchestrator | Hostile fixtures, a fence-coverage unit test, and `scripts/injection-redteam.ts`. The script uses the real model, so it is run by the owner. |
+| `SEC-8` | db, web | TOTP MFA opt-in per tenant. Enrolment and challenge screens. Thirteen transitions refuse an `aal1` session. |
+| Bot 4 | db, orchestrator, web | Duplicate and fraud linker: the same file hash, the same DUI under another name, the same phone. The case screen links to the other application and client. |
+| Bot 5 | db, web | Analysts confirm or correct each extracted value (`field_reviews`), with accuracy per field and a weekly «Muestreo de calidad» |
+| Bot 6 / `FUN-8` | db, web | A printable decision letter from `case_decisions`, marked as needing legal review |
+| Bot 7 | orchestrator, web | Playbook copilot: a manual's text becomes a validated draft, never published by itself |
+| Bot 8 | db, orchestrator, web | The managers' weekly summary email, opt-in per tenant, numbers from SQL |
+| Bot 9 | orchestrator, web | Case Q&A answered from stored values, with citations |
+| Caveats | db, web | `intake_get` returns the tenant; the applicant's DUI read is audited; «Atascadas» count and list share one definition |
+
+**Verified:**
+- tests: grading-engine 70, ai-orchestrator 393, web 236;
+- web's typecheck, lint and production build;
+- db: 19 suites and 610 assertions (156 new) in the PGlite replay, which runs all three new migrations together.
+
+**Not verified:**
+- a real pgTAP run;
+- any new screen in a browser;
+- the copilot, case Q&A and red team against the real model.
+
+**Still open:**
+- V-17 and the infrastructure;
+- bot 10 (WhatsApp), which needs a WhatsApp Business account;
+- the owner's production and dashboard steps (STATUS.md).
 
 ## 1. Verdict
 
