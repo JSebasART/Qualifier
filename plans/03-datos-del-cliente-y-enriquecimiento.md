@@ -138,7 +138,7 @@ create table client_attributes (
 `address.municipality`, `address.department`, `address.country`,
 `family.marital_status`, `family.dependents_count`, `employment.status`,
 `employment.employer_name`, `employment.employer_id` (catálogo, § 6),
-`employment.job_title`, `employment.occupation_code`, `employment.start_date`,
+`employment.job_title`, `employment.occupation` (texto libre del DUI), `employment.occupation_code`, `employment.start_date`,
 `employment.tenure_years` (derivado), `income.monthly_gross`,
 `income.annual_gross`, `income.band` (derivado), `health.bmi`,
 `health.condition_count`, `health.smoker`, `health.glucose_mg_dl`,

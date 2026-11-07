@@ -10,6 +10,44 @@ Identificadores de este plan: `DOC-1` … `DOC-9`.*
 | **Depende de** | Nada. Es el primero. |
 | **Habilita** | Plan 2 (clasificación y sensibilidad por campo, tipos de documento para consentimientos y solicitudes ARCO-POL), Plan 3 (esquema de extracción por tipo, atributos canónicos), Plan 4 (catálogo de campos que se pueden mapear a un CRM) |
 
+### Avance
+
+**`DOC-1` — implementado en `develop` de `db`, `web` y `docs` (2026-11-07), sin
+desplegar.** Migración `db` `20261107000300_document_types.sql`, suite
+`document_types_test.sql` (61 aserciones); en `web`, `lib/document-catalog.ts`
+y `hooks/use-document-catalog.ts`. Verificado con la réplica de la CI en PGlite
+(20 suites, 671 aserciones, también aplicando la migración sobre tenants ya
+sembrados), y en `web` con 241 pruebas, `typecheck` y el build. No se probó en
+un navegador: la migración no está en producción, y hasta entonces `web` usa el
+catálogo integrado, que es idéntico al sembrado.
+
+Diferencias con lo escrito abajo, que las fases siguientes deben tomar como
+punto de partida:
+
+- **Cada tenant recibe su catálogo por un trigger** en `tenants`
+  (`seed_tenant_document_types()`), además del relleno de la migración. Un tenant
+  nuevo nace con los once tipos publicados.
+- **No hay `import_document_type_template()`**:
+  `create_document_type(p_key, p_label, p_category, p_from_template, p_tenant_id)`
+  copia una plantilla como borrador. Se agregaron
+  `discard_document_type_draft()` y `restore_document_type()`.
+- **`document_type_versions.tenant_id` no tiene FK propia**: lo copia un trigger
+  desde el tipo. Una cascada directa desde `tenants` podría alcanzar una versión
+  publicada antes que su tipo.
+- **`documents.document_type_version_id` y `documents.acceptance` no se
+  agregaron todavía**: llegan con `DOC-3` y `DOC-4`, que son los que los
+  escriben.
+- **`publish_playbook()` rechaza un tipo que el tenant no tiene activo**
+  (`unknown_document_type`), porque la FK ya no dejaría guardar un documento de
+  ese tipo. Que una llave `document.<tipo>.<campo>` exista en el esquema del
+  tipo sigue sin exigirse en la base: es el linter del editor (`DOC-2`), y «Otra
+  llave» sigue disponible hasta entonces.
+- **`role`** (`identity_document`) quedó como columna de `document_types`, con
+  índice único por tenant, no dentro de la definición.
+- `pii` significa "identifica a una persona por sí solo"; todo lo que dice un
+  documento del cliente es dato personal, y `sensitive` marca las categorías
+  especiales.
+
 ---
 
 ## 0. Resumen y respuesta corta
