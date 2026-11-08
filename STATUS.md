@@ -100,6 +100,19 @@ history, each part as true as its date.
   judging: acceptance, cost, model, tokens, engine version and the rule table
   all show. The table now reads «Mensaje si no se cumple» and dims a passed
   rule's message (web `111831f`, deployed).
+- **The applicant's self-service, rendered (local harness, personal link, no
+  captcha).** The synthetic client was verified by date of birth and walked
+  through Tus datos and Preguntas to Documentos:
+  - the DUI read «Listo»;
+  - the proof of income showed «Emitido hace menos de 90 días», the type's
+    instructions, «Ver un ejemplo» with the image, and the visible problem
+    «Sube una constancia firmada y sellada por tu empresa»;
+  - a seeded `sys_tamper` entry appeared nowhere on the page.
+
+  The walk also found that the example route answered with a signed Storage
+  URL whose path carried the tenant's id and the file's name. It now returns
+  the image as a `data:` URL, and the response holds neither (web `a075a84`,
+  docs `fd77dd5`, deployed).
 - **Still not seen:**
   - **The test bench reading a sample with the real model.** Its extraction
     and judgement are the path proven in production above, and its tab and
@@ -113,9 +126,9 @@ history, each part as true as its date.
       (401 "invalid x-api-key"). It is well-formed, so it was rotated or
       revoked. The deployed key lives on Render. Replace the local one before
       any local model run.
-  - **A self-service upload.** It passes a CAPTCHA and the applicant's
-    verification, so it needs a person. seguros' link is also closed until it
-    publishes a consent text.
+  - **A self-service upload in production.** Neither tenant has a published
+    consent text, so no intake link (product or personal) opens there. A
+    product link also passes a CAPTCHA.
 - **What it contains:**
   - the document type editor;
   - acceptance evaluated per type by grading-engine, stored in
