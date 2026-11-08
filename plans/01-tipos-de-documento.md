@@ -12,9 +12,10 @@ Identificadores de este plan: `DOC-1` … `DOC-9`.*
 
 ### Avance
 
-**`DOC-2` a `DOC-9` — implementados en `develop` de los cinco repos
-(2026-11-08), sin push ni despliegue.** Commits: db `64725b1`, grading-engine
-`cc04cbd`, ai-orchestrator `6646d27`, web `847f9f8`, docs `5955c22`. Hechos en
+**`DOC-2` a `DOC-9` — en producción desde el 2026-11-08.** `main` de cada repo:
+db `3b27cc0`, grading-engine `cc04cbd`, ai-orchestrator `6646d27`, web
+`847f9f8`, docs `5955c22`; migración `20261108161005 document_acceptance`,
+ensayada en producción (341/341) y verificada por huella del esquema. Hechos en
 paralelo, uno por área, contra un contrato común. Lo que hay:
 
 - **`db`**: migración `20261108000000_document_acceptance.sql` y la suite
@@ -93,9 +94,9 @@ Verificado y pendiente:
   - una prueba entre repos, sin simulaciones: el `grading-engine` real, en
     local, contesta al cliente del orquestador, y sus respuestas pasan por
     `record_document_acceptance()` y `accept_document_check()` de la migración.
-- **Sin verificar:** nada se probó en un navegador ni contra producción o el
-  modelo. Hace falta desplegar en el orden `db` → `grading-engine` →
-  `ai-orchestrator` → `web`.
+- **Sin verificar:** nada se probó todavía en un navegador con sesión ni con
+  el modelo real; la primera subida después del despliegue es el primer juicio
+  real.
 - **Identidad por rol, ahora completa:**
   - el registro de clientes del personal y el autoservicio aceptan el número
     del documento de identidad del tenant: el DUI con su dígito verificador, o

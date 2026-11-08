@@ -3,13 +3,47 @@
 This file grew as a log. The headline below is current; everything after it is
 history, each part as true as its date.
 
-**Headline (2026-11-08, ~16:00 UTC): Plan 1 `DOC-2` to `DOC-9` committed on `develop`, not pushed, not deployed.**
+**Headline (2026-11-08, ~16:30 UTC): Plan 1 `DOC-2` to `DOC-9` in production.**
 
-- **Commits (local `develop`, one per repo):** db `64725b1`, grading-engine
-  `cc04cbd`, ai-orchestrator `6646d27`, web `847f9f8`, docs `5955c22`. `main`
-  and production are still at the previous headline's commits, so the pins
-  here are unchanged.
-- **What they contain:**
+- **Promoted:** each `main` was fast-forwarded to `develop` in deploy order:
+  db `3b27cc0`, grading-engine `cc04cbd`, ai-orchestrator `6646d27`, web
+  `847f9f8`, docs `5955c22`. The pins here record them. To roll back, the
+  previous `main`s are db `2f1938d`, grading-engine `9a6a746`,
+  ai-orchestrator `a7d77ae`, web `487d529`, docs `f4bd47b`.
+- **The migration** `20261108000000_document_acceptance` is ledger row
+  `20261108161005 document_acceptance`. The procedure was the one from the
+  previous round:
+  - **Baseline:** production equalled the local build up to `20261107000300`
+    in every fingerprint category.
+  - **Staging:** a comment-stripped copy, proven to build the identical schema,
+    was staged in 18 chunks, each checked by md5.
+  - **Rehearsal:** one block that rolls back. The migration applied on
+    production data and views were unchanged. No SECURITY DEFINER function is
+    executable by `anon`, and no `intake_*` function by a user role. Each tenant
+    has 11 types and there are 18 templates. A staff upload and the deployed
+    orchestrator's writes still work, and a browser's `acceptance` is dropped.
+    The suites passed 341 of 341: document_acceptance 137, document_types 61,
+    intake 97, write_authorization 38, anon_surface 8.
+  - **One test fix on the way** (db `3b27cc0`): the acceptance suite tried to
+    give the real `storage.objects` the CI stub's shape. It now does that only
+    on the stub.
+  - **Apply and verify:** `apply_migration` ran with an md5 guard. Production
+    now equals the local build of all 34 migrations in every category: 158
+    functions, 96 indexes, 39 policies, 31 relations, 25 triggers and 207
+    constraints. The ledger's `statements` holds the SQL that ran, `_staging`
+    is dropped, and the advisors show nothing new beyond the two intended
+    signed-in RPCs and the new indexes not used yet.
+- **Live** (see the checks below): grading-engine serves `/documents/evaluate`
+  (401 without the token), and ai-orchestrator restarted with the embedded
+  worker, its first sweep found nothing stranded, and it logged no errors.
+- **Not yet seen in a signed-in browser:**
+  - the type editor;
+  - an override;
+  - a self-service upload with instructions;
+  - a document judged by the real model and grading-engine.
+
+  The first upload after this deploy is the first real judgement.
+- **What it contains:**
   - the document type editor;
   - acceptance evaluated per type by grading-engine, stored in
     `documents.acceptance`, with analyst overrides;
