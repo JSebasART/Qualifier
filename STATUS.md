@@ -36,13 +36,32 @@ history, each part as true as its date.
 - **Live** (see the checks below): grading-engine serves `/documents/evaluate`
   (401 without the token), and ai-orchestrator restarted with the embedded
   worker, its first sweep found nothing stranded, and it logged no errors.
-- **Not yet seen in a signed-in browser:**
+- **Judged live, end to end.** Two QA documents in seguros (applications in
+  manual review, nothing waiting to score) were marked `pending` through
+  `record_document_acceptance()`, keeping their status. The deployed sweep
+  picked them up at 16:20 UTC (`acceptance: 2, reevaluated: 2`, no error in
+  any service), and the deployed grading-engine judged each one against version
+  1 of its type, from its stored reading and with no model call:
+  - `11a0269e` (clean proof of income): `accepted`, still `extracted`;
+  - `54ca269a` (one tamper flag): `flagged` by `sys_tamper` alone, still
+    `flagged`.
+
+  Both are exactly what `statusForExtraction()` gave them.
+- **Applicant side, without a session:**
+  - `intake_link_public('ingreso-auto')` now gives each required document its
+    label, role, inherited age limit (proof of income 90 days) and the
+    instruction and example keys, plus `identity_document` (DUI).
+  - The public page renders with no console error. Its HTML carries
+    `has_example`, never `example_path` or the tenant's id.
+  - That link answers "todavía no recibe solicitudes en línea" because seguros
+    has no published consent text (`no_consent`). That is the data, not this
+    deploy.
+- **Not yet seen in a signed-in browser.** Signing in to the deployed site is
+  for a person:
   - the type editor;
   - an override;
-  - a self-service upload with instructions;
-  - a document judged by the real model and grading-engine.
-
-  The first upload after this deploy is the first real judgement.
+  - the test bench reading a sample with the model;
+  - a self-service upload with instructions.
 - **What it contains:**
   - the document type editor;
   - acceptance evaluated per type by grading-engine, stored in
