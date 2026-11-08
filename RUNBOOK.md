@@ -299,14 +299,15 @@ cd db && npm run db:test
 cd web && npm test
 ```
 
-As of 2026-10-30:
+As of 2026-11-08, on the `develop` working trees with Plan 1's `DOC-2` to
+`DOC-9` (not yet committed):
 
 | Repo | Tests |
 | --- | --- |
-| grading-engine | 55 |
-| ai-orchestrator | 181 |
-| `web` | 107 unit tests |
-| `db` | 305 pgTAP assertions in 12 suites |
+| grading-engine | 299 |
+| ai-orchestrator | 495 |
+| `web` | 372 unit tests |
+| `db` | 808 pgTAP assertions in 21 suites (replayed in PGlite) |
 
 `db`'s suites cover:
 - read isolation and write authorization;

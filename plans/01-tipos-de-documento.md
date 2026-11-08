@@ -12,8 +12,102 @@ Identificadores de este plan: `DOC-1` … `DOC-9`.*
 
 ### Avance
 
-**`DOC-1` — implementado en `develop` de `db`, `web` y `docs` (2026-11-07), sin
-desplegar.** Migración `db` `20261107000300_document_types.sql`, suite
+**`DOC-2` a `DOC-9` — implementados en `develop` de los cinco repos
+(2026-11-08), sin push ni despliegue.** Commits: db `64725b1`, grading-engine
+`cc04cbd`, ai-orchestrator `6646d27`, web `847f9f8`, docs `5955c22`. Hechos en
+paralelo, uno por área, contra un contrato común. Lo que hay:
+
+- **`db`**: migración `20261108000000_document_acceptance.sql` y la suite
+  `document_acceptance_test.sql` (111 aserciones):
+  - `documents.document_type_version_id` y `documents.acceptance`, cerradas a
+    un JWT de usuario por el trigger `documents_guard_acceptance`;
+  - las funciones `record_document_acceptance()` (solo `service_role`),
+    `accept_document_check()`, `effective_requirements()` y
+    `set_document_type_role()`;
+  - la herencia de `max_age_days`;
+  - `auto_decide_case()` no aprueba con excepciones aceptadas ni con juicios
+    pendientes;
+  - el barrido gana el tipo `acceptance`;
+  - intake con instrucciones, ejemplo y problemas visibles;
+  - el bucket `document-examples`;
+  - identidad por `role`;
+  - siete plantillas nuevas.
+- **`grading-engine`** (0.2.0): `POST /documents/evaluate` y `POST /documents/validate`.
+  El validador es un puerto de `document_type_definition_errors()`. También
+  genera las reglas `sys_*` y acepta `extra_rules` en el playbook.
+- **`ai-orchestrator`**:
+  - extracción guiada por el esquema del tipo: campos, verificaciones visuales e
+    instrucciones, con normalización por clase;
+  - evaluación y registro de la aceptación;
+  - `pending` cuando `grading-engine` no contesta;
+  - identidad y datos del cliente por `role` y `canonical`;
+  - las rutas `/documents/:id/evaluate`, `/document-types/test` y
+    `/document-types/propose`;
+  - el copiloto y `expected-fields.ts` leen el catálogo de la base.
+- **`web`**:
+  - Configuración → Tipos de documento: lista y editor con las pestañas
+    General, Campos (con «Proponer con IA»), Aceptación, Solicitante, Prueba,
+    Versiones y Usado en;
+  - el linter del editor de playbooks marca como error una llave que el tipo no
+    declara;
+  - en la solicitud y el caso: resultado de aceptación, «Aceptar de todos
+    modos», «Re-evaluar» y campos en el orden del esquema;
+  - en autoservicio: instrucciones, ejemplo y problemas visibles;
+  - identidad por `role`.
+- **`docs`**: `supabase-schema.md` § "Document acceptance", `playbook-schema.md`
+  (herencia de `max_age_days`, `extra_rules`, aceptación) y `architecture.md`.
+
+Decisiones que difieren de lo escrito abajo:
+
+- **Las variables calculadas viven en `meta.*`**, no en `doc.*`:
+  `meta.legibility`, `meta.matches_type`, `meta.tamper_count`, `meta.age_days`,
+  `meta.days_to_expiry` y `meta.pages`. Así un campo llamado `pages` no choca con
+  ellas. `meta.age_days` usa la misma fecha de emisión que `max_age_days`.
+- **Las reglas `sys_*` las genera `grading-engine`**, no el orquestador. Así el
+  banco de pruebas y el flujo usan una sola implementación.
+- **Con las definiciones sembradas, el resultado es idéntico a
+  `statusForExtraction()`.** Un documento ilegible queda `flagged`, no
+  `rejected`. Hay una prueba de regresión en `grading-engine` y otra en
+  `ai-orchestrator`.
+- **Una expresión solo puede leer `doc.*`, `check.*`, `form.*` y las seis
+  `meta.*`.** Una variable null deja la regla indeterminada, así que `doc.x ==
+  null` no sirve para preguntar «está vacío».
+- **El documento queda `extracting` mientras se evalúa.**
+  `record_document_acceptance()` fija el estado; con un juicio `pending`, el
+  estado lo da `statusForExtraction()`, así que la alteración sigue marcando.
+  Cualquier respuesta distinta de 200 de `grading-engine` cuenta como
+  `pending`: `grading_engine_unavailable`, o `evaluation_refused` para un 4xx.
+- **Cuando el barrido resuelve un juicio pendiente**, la solicitud cuyo último
+  puntaje se bloqueó por él o se hizo sin él se vuelve a puntuar sola.
+- **Una excepción aceptada nunca vale para `sys_not_expired`.** Tampoco para
+  `sys_tamper` cuando el tipo rechaza la alteración.
+- **`accept_document_age()` sigue igual**; no se convirtió en envoltorio.
+- **Las rutas de prueba y propuesta de `web` reciben `document_type_id`**, y el
+  tenant sale de la sesión, nunca del cuerpo.
+
+Verificado y pendiente:
+
+- **Verificado:**
+  - cada repo pasa sus pruebas, su `typecheck` y su build;
+  - `db` pasa la réplica de la CI en PGlite;
+  - una prueba entre repos, sin simulaciones: el `grading-engine` real, en
+    local, contesta al cliente del orquestador, y sus respuestas pasan por
+    `record_document_acceptance()` y `accept_document_check()` de la migración.
+- **Sin verificar:** nada se probó en un navegador ni contra producción o el
+  modelo. Hace falta desplegar en el orden `db` → `grading-engine` →
+  `ai-orchestrator` → `web`.
+- **Identidad por rol, ahora completa:**
+  - el registro de clientes del personal y el autoservicio aceptan el número
+    del documento de identidad del tenant: el DUI con su dígito verificador, o
+    5 a 30 letras o dígitos;
+  - el visor de documentos usa la versión con la que se leyó cada documento.
+- **Límite conocido:** `intake_start_personal()` y `create_intake_link()`
+  todavía identifican al cliente por DUI o por fecha de nacimiento. Un cliente
+  que solo tiene pasaporte necesita su fecha de nacimiento para recibir un
+  enlace personal.
+
+**`DOC-1` — implementado en `develop` de `db`, `web` y `docs` (2026-11-07),
+desplegado el 2026-11-08.** Migración `db` `20261107000300_document_types.sql`, suite
 `document_types_test.sql` (61 aserciones); en `web`, `lib/document-catalog.ts`
 y `hooks/use-document-catalog.ts`. Verificado con la réplica de la CI en PGlite
 (20 suites, 671 aserciones, también aplicando la migración sobre tenants ya

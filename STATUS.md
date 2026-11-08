@@ -3,7 +3,72 @@
 This file grew as a log. The headline below is current; everything after it is
 history, each part as true as its date.
 
-**Headline (2026-11-08, ~00:50 UTC).**
+**Headline (2026-11-08, ~16:00 UTC): Plan 1 `DOC-2` to `DOC-9` committed on `develop`, not pushed, not deployed.**
+
+- **Commits (local `develop`, one per repo):** db `64725b1`, grading-engine
+  `cc04cbd`, ai-orchestrator `6646d27`, web `847f9f8`, docs `5955c22`. `main`
+  and production are still at the previous headline's commits, so the pins
+  here are unchanged.
+- **What they contain:**
+  - the document type editor;
+  - acceptance evaluated per type by grading-engine, stored in
+    `documents.acceptance`, with analyst overrides;
+  - schema-guided extraction with visual checks;
+  - max-age inheritance (`effective_requirements()`);
+  - self-service instructions, example images and visible problems;
+  - identity by `role`;
+  - the editor's test bench and the AI field proposal.
+
+  The repos involved:
+  - db: migration `20261108000000_document_acceptance.sql`, suite
+    `document_acceptance_test.sql` (137);
+  - grading-engine 0.2.0: `/documents/evaluate`, `/documents/validate`;
+  - ai-orchestrator: `/documents/:id/evaluate`, `/document-types/test`,
+    `/document-types/propose`;
+  - web: `/settings/document-types`;
+  - docs.
+
+  The details and where it departs from the design are in
+  `plans/01-tipos-de-documento.md` § "Avance".
+- **Verified locally only:**
+  - db: the CI replay in PGlite (Postgres 18; production is 17.6), 21 suites,
+    808 assertions, also applied over an already-seeded database;
+  - grading-engine: 299 tests, typecheck and build;
+  - ai-orchestrator: 495 tests, typecheck and build;
+  - web: 372 tests, typecheck, lint and the production build.
+
+  Plus a cross-repo check with no mock in between (scripts in the session
+  scratchpad, not committed). The real grading-engine, run locally, answered
+  ai-orchestrator's own context builder and client. Its answers then went
+  through the migration's `record_document_acceptance()` and
+  `accept_document_check()` in the PGlite replay, covering eight steps in
+  order:
+  - clean;
+  - tampered;
+  - an override;
+  - re-evaluation keeping it;
+  - unreadable dropping it;
+  - a product reject that cannot be overridden;
+  - pending;
+  - clean again.
+
+  The seeded definition in the database matched web's fixture byte for byte.
+  Nothing ran against production, the model, or in a browser. A read-only
+  security review from the attacker's side found one medium and three low
+  issues, all fixed and covered by tests:
+  - a tamper rejection visible to the applicant;
+  - an override undoing a rejection;
+  - file limits checked only against what the browser declared;
+  - DUI checks dropped when the identity role moved.
+- **Deploy order when it ships:** db (rehearse in a rolled-back block, then
+  `apply_migration`, as before) → grading-engine → ai-orchestrator → web. Each
+  step works with the one before: the old orchestrator never writes
+  `acceptance`, so its documents read as before. ai-orchestrator must **not**
+  go before grading-engine. Without `/documents/evaluate`, every judgement
+  would be `pending`, and every application with a required document would go
+  to manual review.
+
+**Previous headline (2026-11-08, ~00:50 UTC).**
 
 - **Round 2 of the 2026-11-05 audit and DOC-1 are in production.** The four
   migrations went first, then all five repos were promoted (db `2f1938d`,
