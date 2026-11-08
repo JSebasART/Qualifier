@@ -65,12 +65,28 @@ history, each part as true as its date.
     it became effective `accepted` and `extracted`; withdrawing the acceptance
     returned it to `flagged`. A rule that had passed was refused
     (`rule_not_failed`).
-- **Not yet seen in a signed-in browser.** Signing in to the deployed site is
-  for a person; there is no local Supabase stack here (no Docker). What has not
-  been seen:
-  - how the screens render;
-  - the test bench reading a sample with the model;
-  - a self-service upload with instructions.
+- **The signed-in screens, rendered.** web ran locally in dev mode against a
+  fake Supabase with seed-like data, and against the real grading-engine run
+  locally. Every process was held to localhost: the only outbound attempts were
+  Next's npm update checks, which a guard blocked. The harness is in the
+  session scratchpad, not committed. What was seen, signed in as an
+  administrator:
+  - the type list;
+  - the editor's Campos, Aceptación and Versiones tabs. «Validar» was answered
+    by the real engine, and the generated `sys_*` rules and the diff show;
+  - an application's acceptance panel. «Aceptar de todos modos» with a reason
+    turned the document «Extraído» and «Cumple los requisitos», queued a
+    rescore, and offered «Retirar aceptación»;
+  - the same judgement on the case view.
+
+  No new screen logged an error. One double period after the time of an
+  accepted exception was fixed (web `c2aae20`, deployed).
+- **Still not seen:**
+  - **The test bench reading a sample with the real model.** Uploading a file
+    needs a person, and the real orchestrator needs a session on the deployed
+    site.
+  - **A self-service upload.** seguros' link is closed until it publishes a
+    consent text.
 - **What it contains:**
   - the document type editor;
   - acceptance evaluated per type by grading-engine, stored in
