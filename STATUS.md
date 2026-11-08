@@ -81,8 +81,23 @@ history, each part as true as its date.
 
   No new screen logged an error. One double period after the time of an
   accepted exception was fixed (web `c2aae20`, deployed).
+- **First reading with the model in production, schema-guided (21:06 UTC).**
+  Two synthetic QA documents in seguros were set back to `uploaded`, as
+  «Re-extraer» would, and audited as `document.reextraction_requested`:
+  - the constancia `54ca269a` and the DUI `d054f6ca` of Karla Hernández, the
+    invented person in `qa/2026-10-02`;
+  - their application is in manual review, with no rescore asked for.
+
+  The deployed sweep read them with `claude-sonnet-5-5` (US$0.0174 and
+  US$0.0141). The fields now come under the type's keys: `monthly_income`,
+  `employer`, `job_title` and `issue_date` first, and `national_id` where the
+  old reading said `dui_number`. The deployed grading-engine judged both
+  `accepted`, both are `extracted` with their type version, and no service
+  logged an error or warning.
 - **Still not seen:**
-  - **The test bench reading a sample with the real model.** ai-orchestrator's
+  - **The test bench reading a sample with the real model.** Its extraction
+    and judgement are the path just proven in production; what is unseen is
+    its own route through a signed-in session. ai-orchestrator's
     own `runDocumentTypeTest()` was run locally against the fake Supabase and
     the real grading-engine, with the QA constancia (`qa/2026-10-02`). It got
     through the draft's validation, the sample's limits and the spend cap, and
@@ -94,8 +109,6 @@ history, each part as true as its date.
   - **A self-service upload.** It passes a CAPTCHA and the applicant's
     verification, so it needs a person. seguros' link is also closed until it
     publishes a consent text.
-  - **No document has been uploaded since the deploy.** The next upload is the
-    first schema-guided reading with the model in production.
 - **What it contains:**
   - the document type editor;
   - acceptance evaluated per type by grading-engine, stored in
