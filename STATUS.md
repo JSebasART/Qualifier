@@ -82,11 +82,20 @@ history, each part as true as its date.
   No new screen logged an error. One double period after the time of an
   accepted exception was fixed (web `c2aae20`, deployed).
 - **Still not seen:**
-  - **The test bench reading a sample with the real model.** Uploading a file
-    needs a person, and the real orchestrator needs a session on the deployed
-    site.
-  - **A self-service upload.** seguros' link is closed until it publishes a
-    consent text.
+  - **The test bench reading a sample with the real model.** ai-orchestrator's
+    own `runDocumentTypeTest()` was run locally against the fake Supabase and
+    the real grading-engine, with the QA constancia (`qa/2026-10-02`). It got
+    through the draft's validation, the sample's limits and the spend cap, and
+    stopped at Anthropic.
+    - **The `ANTHROPIC_API_KEY` in `qualifier-secrets.env.txt` is rejected**
+      (401 "invalid x-api-key"). It is well-formed, so it was rotated or
+      revoked. The deployed key lives on Render. Replace the local one before
+      any local model run.
+  - **A self-service upload.** It passes a CAPTCHA and the applicant's
+    verification, so it needs a person. seguros' link is also closed until it
+    publishes a consent text.
+  - **No document has been uploaded since the deploy.** The next upload is the
+    first schema-guided reading with the model in production.
 - **What it contains:**
   - the document type editor;
   - acceptance evaluated per type by grading-engine, stored in
