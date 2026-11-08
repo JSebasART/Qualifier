@@ -56,10 +56,19 @@ history, each part as true as its date.
   - That link answers "todavía no recibe solicitudes en línea" because seguros
     has no published consent text (`no_consent`). That is the data, not this
     deploy.
+- **Signed-in flows, at the database, as real staff of seguros.** These ran in
+  one block that rolled back, and nothing persisted:
+  - **The type editor's calls:** a type created from the bank statement
+    template, a draft saved with a visual check and a rule, and version 1
+    published. A repeated key was refused (`document_type_key_taken`).
+  - **«Aceptar de todos modos» on the QA document flagged by `sys_tamper`:**
+    it became effective `accepted` and `extracted`; withdrawing the acceptance
+    returned it to `flagged`. A rule that had passed was refused
+    (`rule_not_failed`).
 - **Not yet seen in a signed-in browser.** Signing in to the deployed site is
-  for a person:
-  - the type editor;
-  - an override;
+  for a person; there is no local Supabase stack here (no Docker). What has not
+  been seen:
+  - how the screens render;
   - the test bench reading a sample with the model;
   - a self-service upload with instructions.
 - **What it contains:**
