@@ -94,10 +94,17 @@ history, each part as true as its date.
   old reading said `dui_number`. The deployed grading-engine judged both
   `accepted`, both are `extracted` with their type version, and no service
   logged an error or warning.
+- **The test bench from the editor, signed in (local harness).** The tab and
+  web's route were exercised with the synthetic constancia, set on the file
+  input by script, with the orchestrator canned and the real grading-engine
+  judging: acceptance, cost, model, tokens, engine version and the rule table
+  all show. The table now reads «Mensaje si no se cumple» and dims a passed
+  rule's message (web `111831f`, deployed).
 - **Still not seen:**
   - **The test bench reading a sample with the real model.** Its extraction
-    and judgement are the path just proven in production; what is unseen is
-    its own route through a signed-in session. ai-orchestrator's
+    and judgement are the path proven in production above, and its tab and
+    route are seen locally. What is unseen is the deployed route's own call to
+    the model. ai-orchestrator's
     own `runDocumentTypeTest()` was run locally against the fake Supabase and
     the real grading-engine, with the QA constancia (`qa/2026-10-02`). It got
     through the draft's validation, the sample's limits and the spend cap, and
