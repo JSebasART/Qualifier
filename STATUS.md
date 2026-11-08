@@ -1,9 +1,53 @@
-# Status — verified 2026-11-06
+# Status — verified 2026-11-08
 
 This file grew as a log. The headline below is current; everything after it is
 history, each part as true as its date.
 
-**Headline (2026-11-06, ~06:55 UTC).**
+**Headline (2026-11-08, ~00:50 UTC).**
+
+- **Round 2 of the 2026-11-05 audit and DOC-1 are in production.** The four
+  migrations went first, then all five repos were promoted (db `2f1938d`,
+  grading-engine `9a6a746`, ai-orchestrator `a7d77ae`, web `487d529`, docs
+  `f4bd47b`); `develop` equals `main` in each. The previous `main`s, to roll
+  back to: db `93c656f`, grading-engine `89dcaca`, ai-orchestrator `7129635`,
+  web `8390cf7`, docs `14d0e69`.
+  - Ledger: `20261108004218 pipeline_integrity`, `…004224 analyst_tools`,
+    `…004229 intake_demo_security`, `…004234 document_types`. Each was applied
+    from a staged copy whose MD5 matched the file stripped of full-line comments
+    outside function bodies (bodies untouched; equivalence proven by a schema
+    fingerprint of both builds). The staging schema is dropped, and each
+    ledger row's `statements` now holds the SQL that ran.
+  - Baseline first: production's schema matched a local build up to
+    `20261106000000` in every table, column, privilege, policy, index, trigger
+    and constraint. One function differed, `submit_application`, by whitespace and
+    comments only (an earlier apply stripped them); `pipeline_integrity`
+    replaces it.
+  - Rehearsed on production in one rolled-back block: the four migrations, then
+    the four new suites (pipeline_integrity 50, analyst_tools 43,
+    intake_demo_security 63, document_types 61: 217 of 217), views unchanged, no
+    SECURITY DEFINER function executable by `anon`, and a staff upload as the
+    deployed web makes it (`national_id` accepted, an unknown type refused by
+    the new FK) in both tenants.
+  - After applying: production's schema fingerprint equals a local build of
+    all 33 migrations, category by category. `seguros`, `medico` and the
+    templates hold 11 published types each; no document lacks its type. No
+    tenant has `mfa_required`, so nothing the deployed web does is gated yet.
+  - Between the apply and the push (~10 minutes) the old orchestrator read the
+    new sweep kinds (`orphan`, `stalled`, `hash`) and ignored them, as checked
+    against its code beforehand.
+- **Checked live after the deploy (00:45–00:49 UTC):**
+  - Render reports all three services `live` on the new commits; `/health`
+    answers ok on grading-engine and the orchestrator; web serves the Spanish
+    build ("Iniciar sesión"). No error-level log line on any of the three.
+  - The orchestrator booted with `WORKER_MODE=embedded`. Its boot sweep closed
+    médico N.º 6's orphan document (`2d…0028`, `rejected:file_missing`, one
+    audit row), released the application, which was processed and routed to
+    manual review for its missing documents (case `unassigned`, no model call),
+    and hashed 14 documents. The next sweep found nothing stranded.
+- **Not seen in a browser signed in**, so the catalogue load (DOC-1), the new
+  editor, MFA screens and analyst tools have not been looked at live.
+
+**Headline (2026-11-06, ~06:55 UTC)** (history).
 
 - **The 2026-11-05 audit's S and M fixes are in production**
   ([`audit/2026-11-05-five-viewpoints-audit.md`](audit/2026-11-05-five-viewpoints-audit.md)
