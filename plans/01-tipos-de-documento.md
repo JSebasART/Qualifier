@@ -14,12 +14,14 @@ Identificadores de este plan: `DOC-1` … `DOC-9`.*
 
 **`DOC-2` a `DOC-9` — en producción desde el 2026-11-08.** `main` de cada repo:
 db `3b27cc0`, grading-engine `cc04cbd`, ai-orchestrator `6646d27`, web
-`847f9f8`, docs `5955c22`; migración `20261108161005 document_acceptance`,
-ensayada en producción (341/341) y verificada por huella del esquema. Hechos en
-paralelo, uno por área, contra un contrato común. Lo que hay:
+`a075a84`, docs `fd77dd5`. web y docs se promovieron en `847f9f8` y `5955c22`;
+lo que siguió son arreglos hallados al verificar (abajo). Migración
+`20261108161005 document_acceptance`, ensayada en producción (341/341) y
+verificada por huella del esquema. Hechos en paralelo, uno por área, contra un
+contrato común. Lo que hay:
 
 - **`db`**: migración `20261108000000_document_acceptance.sql` y la suite
-  `document_acceptance_test.sql` (111 aserciones):
+  `document_acceptance_test.sql` (137 aserciones):
   - `documents.document_type_version_id` y `documents.acceptance`, cerradas a
     un JWT de usuario por el trigger `documents_guard_acceptance`;
   - las funciones `record_document_acceptance()` (solo `service_role`),
@@ -88,15 +90,39 @@ Decisiones que difieren de lo escrito abajo:
 
 Verificado y pendiente:
 
-- **Verificado:**
+- **Verificado** (el detalle, con fechas y documentos, está en
+  [`STATUS.md`](../STATUS.md)):
   - cada repo pasa sus pruebas, su `typecheck` y su build;
   - `db` pasa la réplica de la CI en PGlite;
   - una prueba entre repos, sin simulaciones: el `grading-engine` real, en
     local, contesta al cliente del orquestador, y sus respuestas pasan por
-    `record_document_acceptance()` y `accept_document_check()` de la migración.
-- **Sin verificar:** nada se probó todavía en un navegador con sesión ni con
-  el modelo real; la primera subida después del despliegue es el primer juicio
-  real.
+    `record_document_acceptance()` y `accept_document_check()` de la migración;
+  - **en producción:**
+    - el esquema iguala la compilación local en cada categoría de la huella;
+    - el barrido desplegado volvió a juzgar dos documentos `pending` con el
+      `grading-engine` desplegado, con el mismo resultado que
+      `statusForExtraction()`;
+    - la primera lectura con el modelo guiada por el esquema
+      (`claude-sonnet-5-5`, dos documentos QA sintéticos de seguros) dejó los
+      campos con las llaves del tipo y ambos documentos `accepted`;
+  - **con sesión, en un arnés local** (web en modo dev contra un Supabase falso
+    y el `grading-engine` real):
+    - el editor: Campos, Aceptación, Versiones y Prueba;
+    - el panel de aceptación con «Aceptar de todos modos», en la solicitud y
+      en el caso;
+    - el autoservicio del solicitante por enlace personal, con instrucciones,
+      ejemplo y problemas visibles.
+
+    De ahí salieron tres arreglos, ya desplegados: web `c2aae20`, `111831f` y
+    `a075a84`. El último hace que la imagen de ejemplo ya no revele el id del
+    tenant ni el nombre del archivo.
+- **Sin verificar.** Los dos necesitan una decisión o un acceso del dueño:
+  - **una subida de autoservicio en producción:** ningún tenant tiene un aviso
+    de privacidad publicado (`no_consent`), así que ningún enlace abre;
+  - **la llamada al modelo desde el banco de pruebas y «Proponer con IA»
+    desplegados:** hace falta una sesión de administrador en el sitio
+    desplegado, o una `ANTHROPIC_API_KEY` local válida. La de
+    `qualifier-secrets.env.txt` responde 401.
 - **Identidad por rol, ahora completa:**
   - el registro de clientes del personal y el autoservicio aceptan el número
     del documento de identidad del tenant: el DUI con su dígito verificador, o
