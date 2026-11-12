@@ -107,3 +107,13 @@ p_action)`, `complete_dsr_propagation(p_id, p_evidence)`, `unlock_field(p_lock_i
   screen would reopen the high review finding (identity by contact on file).
 - A published privacy notice per tenant (owner chose to leave it unpublished): Privacidad → Aviso → Publicar.
 - Optional: publish the staff confidentiality text (Privacidad → Personal) to switch on the acknowledgement gate.
+
+## After deploy (2026-11-12)
+
+| # | Package | Status | Notes |
+| --- | --- | --- | --- |
+| 17 | Agent "Puntaje restringido" on the cases page and client detail | done | web `53baf58` (develop, not yet promoted); typecheck ok |
+| 18 | PGlite-backed local Supabase harness (`scratchpad/ui-harness2/`): real migrations, RLS and grants behind a PostgREST subset, fake GoTrue sessions | done | smoke 11/11 (+45/45 extra); every web env var set locally, egress guard refuses non-loopback; storage RLS not emulated, orchestrator stub processes nothing |
+| 19 | Walk every Plan 2 screen signed in (tenant admin, underwriter, agent, superadmin) + consent link + portal on localhost | done | every step passed in the end; no SQL or console errors; 14 defects (D1: auto-matched DSR subject shown as linked, so an erasure could never run; the rest wording, dates, erased-client actions, incident template field) |
+| 20 | Fix the 14 walk defects (web) | done | web `3b46c0c`; 408 tests, typecheck, lint, build (verified). Open: incident Art. 25 d) has no consequences column (placeholder for staff) |
+| 21 | Re-walk the fixed defects locally | done | 12 of 14 fixed outright; D3 is the harness (the outbox copy is queued, the stub orchestrator sends nothing); D8 leftovers: the erasure plan now names people (web `139f413`), the inventory keeps technical table names by design. Web promoted: main `139f413` |

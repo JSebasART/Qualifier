@@ -15,7 +15,8 @@ history, each part as true as its date.
   the privacy notice and the staff confidentiality commitment are drafts until
   an admin publishes them.
 - **Promoted** in deploy order: docs `08d1f4d`, db `09c3e01`, grading-engine
-  `cc04cbd` (unchanged), ai-orchestrator `6a5b1b0`, web `ebdf842`. To roll
+  `cc04cbd` (unchanged), ai-orchestrator `6a5b1b0`, web `ebdf842` (then
+  `139f413` after the walk below). To roll
   back, the previous `main`s are docs `fd77dd5`, db `3b27cc0`,
   ai-orchestrator `6646d27`, web `a075a84` — but the orchestrator must not run
   ahead of the database's `processing_gate()`, and the database has no
@@ -53,8 +54,22 @@ history, each part as true as its date.
   verification never compared against the contact on file) and all were fixed
   (db migration D, web `ebdf842`, ai-orchestrator `6a5b1b0`). A cross-check of
   ~155 `.rpc()` calls against the SQL signatures found one bug (fixed).
+- **Walked signed in, locally (2026-11-12, after the deploy).** A harness
+  (scratchpad `ui-harness2/`) put the real schema — every migration, RLS,
+  grants and functions — in PGlite behind a PostgREST subset with test
+  sessions, and `next dev` on localhost (every outbound connection but
+  loopback refused). Every Plan 2 screen was used as tenant admin,
+  underwriter, agent and superadmin, plus the consent link (identity, code,
+  notice, per-purpose decisions, drawn signature) and the rights portal
+  (request, code, follow-up, report download), with no SQL or console
+  errors. It found 14 defects, fixed in web `3b46c0c` and `139f413` and
+  re-walked. The one that mattered: an auto-matched client showed as linked
+  to a request, so a cancellation could be resolved with no subject and its
+  erasure could never run. Not covered there: Storage policies (the harness
+  does not emulate them) and the orchestrator (a stub).
 - **Not seen yet:**
-  - No new screen has been used with a real staff session.
+  - No new screen has been used with a real staff session on the deployed
+    site.
   - The consent link and the rights portal cannot complete in production:
     Turnstile and Resend are not configured on `qualifier-web`, so they fail
     closed (`captcha_unavailable`, `mail_unavailable`), and no notice is
