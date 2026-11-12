@@ -957,11 +957,11 @@ confidencialidad del personal quedan en borrador hasta que un administrador los 
 | `LPD-8` Rectificación y supresión | Construido: rectificación con procedencia, supresión con simulación previa, anonimizar o bloquear según retención, redacción de la bitácora, propagación manual |
 | `LPD-9` Retención | Construido: 13 clases propuestas sin aprobar, retenciones legales, job diario `privacy.retention` (solo actúa con políticas aprobadas) |
 | `LPD-10` Seguridad y minimización | Construido: `access_log`, documentos y puntajes sensibles ocultos al rol `agent`, minimización por esquema hacia el modelo, compromiso de confidencialidad. Cifrado por columna no |
-| `LPD-11` Incidentes | Construido: reloj de 72 h, notificaciones por tenant, plantillas del Art. 25 |
+| `LPD-11` Incidentes | Construido: reloj de 72 h, notificaciones por tenant, plantillas del Art. 25 con las posibles consecuencias (migración F) |
 | `LPD-12` Transferencias | Construido: `data_transfers` y registro manual |
 | `LPD-13` Responsabilidad demostrada | Construido: panel de cumplimiento y paquete de evidencia imprimible |
 
-**Verificado.** Cinco migraciones (`20261111000000` … `000400`), 1470 aserciones pgTAP en 26 suites
+**Verificado.** Seis migraciones (`20261111000000` … `000500`), 1470 aserciones pgTAP en 26 suites
 (PGlite), ensayadas y aplicadas primero en `qualifier-dev` y luego en producción tras confirmar que su
 huella era idéntica a la de las migraciones anteriores; el ensayo en producción pasó 14 suites. Las 22
 solicitudes existentes siguen pasando la compuerta. Una revisión de seguridad encontró siete defectos (uno
@@ -969,7 +969,9 @@ alto: la verificación de identidad «contacto registrado» no comparaba con el 
 se corrigieron en la migración D y en `web`/`ai-orchestrator`. Un cotejo de ~155 llamadas `.rpc()` contra
 las firmas SQL encontró un solo error, corregido. Pruebas: `web` 397, `ai-orchestrator` 578.
 
-**Sin verificar.** Ninguna pantalla nueva se ha usado con una sesión real del personal, y las dos páginas
+**Recorrido con sesión, en local.** Todas las pantallas se usaron con sesión de cada rol (administrador, analista, agente, superadministrador), con el enlace de consentimiento y el portal, contra el esquema real en PGlite en `localhost`; los 14 defectos encontrados se corrigieron (web `3b46c0c`, `139f413`).
+
+**Sin verificar.** Ninguna pantalla nueva se ha usado con una sesión real del personal en el sitio desplegado, y las dos páginas
 públicas no pueden completarse en producción todavía: faltan Turnstile y Resend en `qualifier-web`
 (fallan cerrado con `captcha_unavailable` / `mail_unavailable`) y el aviso sin publicar.
 

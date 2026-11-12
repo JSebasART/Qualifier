@@ -67,6 +67,11 @@ history, each part as true as its date.
   to a request, so a cancellation could be resolved with no subject and its
   erasure could never run. Not covered there: Storage policies (the harness
   does not emulate them) and the orchestrator (a stub).
+- **Migration F** (`20261111000500_incident_consequences`, ledger
+  `incident_consequences`, production 41 → 42, dev 54 → 55, each after a
+  green rolled-back rehearsal): `security_incidents.consequences`, so the
+  Art. 25 notice states the possible consequences instead of a placeholder.
+  db `bf445aa`, web `81b2785`, both promoted.
 - **Not seen yet:**
   - No new screen has been used with a real staff session on the deployed
     site.
