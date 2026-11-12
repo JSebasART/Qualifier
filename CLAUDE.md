@@ -106,12 +106,16 @@ These are load-bearing decisions, each one already paid for once.
   (2026-09-11) — before that the step could not pass at all. Do not add a table
   without an RLS policy and a test, and write the test from the attacker's side:
   an assertion that a role *cannot* do something.
-- **An applicant never holds a database credential** (`FUN-11`). Self-service
-  intake runs on a hashed token and `intake_*` functions executable by
-  `service_role` only, called from `web/src/lib/intake/server.ts` after its
-  captcha and rate limits. Granting one of them to `anon`, or reviving
-  anonymous sign-ins, reopens what the 2026-09 security work closed;
-  `intake_test.sql` asserts both.
+- **A client never holds a database credential.** The two pages a client may
+  open, the consent link (`/consentimiento/<token>`) and the rights portal
+  (`/privacidad/<slug>`), run on hashed tokens and `consent_link_*` /
+  `privacy_*` functions executable by `service_role` only, called from web's
+  `app/api/public/**` routes after the captcha and rate limits in
+  `web/src/lib/public/`. Self-service intake (`FUN-11`), which set this
+  pattern, was removed from the code on 2026-11-11; its `intake_*` objects
+  stay in the database, dormant and service-only. Granting any of these to
+  `anon`, or reviving anonymous sign-ins, reopens what the 2026-09 security
+  work closed; `intake_test.sql` and the `privacy_*_test.sql` suites assert it.
 - **The service-role key bypasses RLS and must never reach a browser.** In `web`
   it is reachable only through `src/lib/service-client.ts`, marked `server-only`
   so a client-side import is a build error.
@@ -125,6 +129,23 @@ These are load-bearing decisions, each one already paid for once.
   playbook editor, not in the agent prompts. Telling an agent to answer
   everything in Spanish resolved `fields[].key` to null and still scored the
   application (from the `FUN-7` commit notes).
+- **No table holding personal data without its row in `personal_data_stores`**
+  (Plan 2, `LPD-1`). A pgTAP test fails when a `public` table has a
+  `client_id`, `email`, `phone`, `national_id`, `full_name`, `form_data` or
+  `extracted_data` column and no registry row; the row says how access reports
+  and erasure treat the table.
+- **No `ai_processing` consent, no model call** (Plan 2, `LPD-3`). In a tenant
+  that enforces consent (`privacy_settings.consent_enforced_since`), an
+  application stamped `consent_enforced` at creation is processed by a model
+  only once its client consented to `ai_processing` and
+  `international_processing`. `processing_gate()` decides; the orchestrator
+  asks before every model call and treats any error as a refusal, so the
+  application lands in manual review.
+- **A subject who is not `active` is not processed, searched or exported**
+  (Plan 2, `LPD-4`). `clients.processing_state` is written only by functions;
+  limited, opposed, blocked and erased clients are refused by the gate, and
+  blocked and erased ones are hidden from the lists. Plans 3 and 4 must keep
+  this.
 
 ## Traps that have already cost time
 

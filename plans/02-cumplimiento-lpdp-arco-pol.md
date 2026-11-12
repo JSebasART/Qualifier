@@ -926,3 +926,55 @@ verificar al titular.
 - Lineamientos del Delegado y procedimiento sancionador — [EY](https://www.ey.com/es_ce/technical/tax/tax-alerts/el-salvador-la-agencia-de-ciberseguridad-del-estado-desarrolla-aspectos-relevantes-de-la-ley-de-proteccion-de-datos-personales); [texto en ICNL](https://www.icnl.org/wp-content/uploads/Lineamientos-para-el-delegado-de-proteccion-de-datos-personales.pdf)
 - Presentación de Technosal, "Implementación de la Ley de Protección de Datos Personales", septiembre de 2026 (archivo del usuario)
 - `docs/research/2026-11-06-credit-bureaus-el-salvador.md` (consentimiento de buró, D.L. 695)
+
+---
+
+## Estado de implementación (2026-11-12)
+
+*Construido para una demostración, no para datos reales. Diseño técnico:
+[`02-design.md`](02-design.md); bitácora de ejecución: [`02-PLAN-STATE.md`](02-PLAN-STATE.md).*
+
+**Decisiones del dueño (2026-11-11/12).** El autoservicio del solicitante (`FUN-11`) salió del
+producto: su código se retiró de `web` y `ai-orchestrator` y sus objetos quedan en la base de datos,
+inactivos. Se mantienen el enlace de consentimiento (`/consentimiento/<token>`) y el portal de derechos
+(`/privacidad/<slug>`). El consentimiento obligatorio es un interruptor por tenant, encendido en
+`seguros` y `medico`, que solo aplica a las solicitudes creadas después de encenderlo. El MFA sigue
+opcional. Ninguna migración publica un texto permanente: el aviso de privacidad y el compromiso de
+confidencialidad del personal quedan en borrador hasta que un administrador los publique.
+
+**En producción** (main: db `09c3e01`, ai-orchestrator `6a5b1b0`, web `ebdf842`, docs `08d1f4d`):
+
+| Componente | Estado |
+| --- | --- |
+| `LPD-0` | Lista de tareas del dueño (abajo); sin código |
+| `LPD-1` Inventario y RAT | Construido: `personal_data_stores` con su prueba de invariante, `subprocessors`, `processing_inventory()`, `data_subject_footprint()`; pantalla, CSV e impresión |
+| `LPD-2` Aviso | Construido: `privacy_settings`, textos por tipo con secciones, generador, editor, páginas públicas. Sin publicar (decisión del dueño) |
+| `LPD-3` Finalidades y consentimiento | Construido: 12 finalidades, `consent_records` solo-anexar, `has_consent()`, enlace de consentimiento con fecha de nacimiento o DUI + código + firma dibujada, formulario en papel, revocación. Sin consentimiento de IA no hay llamada al modelo |
+| `LPD-4` Estado de tratamiento | Construido: `processing_state`, `field_locks`, `processing_gate()` en el envío, el barrido, la aprobación automática, el orquestador y las listas |
+| `LPD-5` Solicitudes ARCO-POL | Construido: folio, plazos en días hábiles (asuetos 2026–2028), prevención, prórroga, resolución motivada con causales del Art. 22, alertas del vigilante |
+| `LPD-6` Portal | Construido: no revela si hay datos; seguimiento con código fresco para descargar |
+| `LPD-7` Acceso y portabilidad | Construido: informe imprimible y JSON con datos inferidos y quién consultó; `tramiq.subject-export/v1` + CSV. Sin ZIP de originales |
+| `LPD-8` Rectificación y supresión | Construido: rectificación con procedencia, supresión con simulación previa, anonimizar o bloquear según retención, redacción de la bitácora, propagación manual |
+| `LPD-9` Retención | Construido: 13 clases propuestas sin aprobar, retenciones legales, job diario `privacy.retention` (solo actúa con políticas aprobadas) |
+| `LPD-10` Seguridad y minimización | Construido: `access_log`, documentos y puntajes sensibles ocultos al rol `agent`, minimización por esquema hacia el modelo, compromiso de confidencialidad. Cifrado por columna no |
+| `LPD-11` Incidentes | Construido: reloj de 72 h, notificaciones por tenant, plantillas del Art. 25 |
+| `LPD-12` Transferencias | Construido: `data_transfers` y registro manual |
+| `LPD-13` Responsabilidad demostrada | Construido: panel de cumplimiento y paquete de evidencia imprimible |
+
+**Verificado.** Cinco migraciones (`20261111000000` … `000400`), 1470 aserciones pgTAP en 26 suites
+(PGlite), ensayadas y aplicadas primero en `qualifier-dev` y luego en producción tras confirmar que su
+huella era idéntica a la de las migraciones anteriores; el ensayo en producción pasó 14 suites. Las 22
+solicitudes existentes siguen pasando la compuerta. Una revisión de seguridad encontró siete defectos (uno
+alto: la verificación de identidad «contacto registrado» no comparaba con el contacto registrado) y todos
+se corrigieron en la migración D y en `web`/`ai-orchestrator`. Un cotejo de ~155 llamadas `.rpc()` contra
+las firmas SQL encontró un solo error, corregido. Pruebas: `web` 397, `ai-orchestrator` 578.
+
+**Sin verificar.** Ninguna pantalla nueva se ha usado con una sesión real del personal, y las dos páginas
+públicas no pueden completarse en producción todavía: faltan Turnstile y Resend en `qualifier-web`
+(fallan cerrado con `captcha_unavailable` / `mail_unavailable`) y el aviso sin publicar.
+
+**Lista del dueño (`LPD-0` y demo):** rotar la contraseña de la base de datos; apagar los inicios
+anónimos; encender la protección de contraseñas filtradas; corregir la Site URL; borrar
+`render-blocks.env`; decidir el plan pagado; configurar Turnstile y Resend en `qualifier-web`; publicar el
+aviso (Privacidad → Aviso) y, si se quiere, el compromiso del personal (Privacidad → Personal); iniciar
+el trámite legal L1–L13.

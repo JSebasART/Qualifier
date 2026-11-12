@@ -315,7 +315,7 @@ As of 2026-11-08, on the `develop` working trees with Plan 1's `DOC-2` to
 - staff management, sign-ins and client audit;
 - list views and the anonymous surface;
 - intake inserts;
-- self-service intake, its channels, and automatic approval.
+- the dormant self-service intake functions (removed from the product 2026-11-11, still tested), its channels, and automatic approval.
 
 CI runs them on Postgres 17, production's version. `db:test` needs the local
 Supabase stack (Docker); without it, replay CI's own steps on a plain Postgres

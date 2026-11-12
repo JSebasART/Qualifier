@@ -1,5 +1,7 @@
 # Plan — self-service intake links
 
+> **Retired as of 2026-11-11.** The product owner removed applicant self-service from the product: the staff workspace is what the product sells. The public pages, intake API routes, links and custom domains were deleted from `web` (`7ea00a0`) and the nightly purge from ai-orchestrator (`77fd914`). The `intake_*` tables and functions remain in the database, dormant. It may be rebuilt later. The rest of this file is kept as a record of what was planned and built.
+
 Drafted 2026-10-28 against `develop` in all five repos, and built the same day.
 
 ## Implementation status — 2026-10-28

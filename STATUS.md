@@ -1,9 +1,70 @@
-# Status — verified 2026-11-08
+# Status — verified 2026-11-12
 
 This file grew as a log. The headline below is current; everything after it is
 history, each part as true as its date.
 
-**Headline (2026-11-08, ~16:30 UTC): Plan 1 `DOC-2` to `DOC-9` in production.**
+**Headline (2026-11-12, ~17:30 UTC): Plan 2 (LPDP / ARCO-POL, `LPD-1` to `LPD-13`) in production, built for a demo; applicant self-service removed.**
+
+- **Owner decisions (2026-11-11/12).** Applicant self-service (`FUN-11`) leaves
+  the product: its code is gone from web (`7ea00a0`) and ai-orchestrator
+  (`77fd914`), and its `intake_*` tables and functions stay in the database,
+  dormant and service-only. The consent link and the rights portal stay.
+  Consent enforcement is a per-tenant switch, on in `seguros` and `medico`,
+  stamped on each application at creation, so the 22 existing applications
+  keep working. MFA stays optional. No migration publishes a permanent text:
+  the privacy notice and the staff confidentiality commitment are drafts until
+  an admin publishes them.
+- **Promoted** in deploy order: docs `08d1f4d`, db `09c3e01`, grading-engine
+  `cc04cbd` (unchanged), ai-orchestrator `6a5b1b0`, web `ebdf842`. To roll
+  back, the previous `main`s are docs `fd77dd5`, db `3b27cc0`,
+  ai-orchestrator `6646d27`, web `a075a84` — but the orchestrator must not run
+  ahead of the database's `processing_gate()`, and the database has no
+  rollback for the five migrations.
+- **Migrations**, ledger 36 → 41: `privacy_inventory_consent`,
+  `privacy_state_requests`, `privacy_execution_security`,
+  `privacy_review_fixes`, `staff_confidentiality_draft`
+  (`20261111000000` … `000400`). Procedure:
+  - **Dev first.** All five went to the new `qualifier-dev` project
+    (`vtcrbrajexbsberrqwvo`, ledger 54), each after a rolled-back rehearsal
+    with its suites. Two test bugs surfaced on real Postgres and were fixed
+    (db `817ee29`, `09c3e01`); no migration bug.
+  - **Production baseline:** its fingerprint equalled the PGlite replay of the
+    migrations before Plan 2 in every category (NOT NULL constraints excluded,
+    which PGlite stores as rows).
+  - **Rehearsal** on production, rolled back: A–E clean and 14 suites green
+    (consent 125, requests 226, execution 224, review fixes 65, staff draft 22,
+    write_authorization 38, rls_isolation 31, anon_surface 8, list_views 17,
+    document_acceptance 137, document_types 61, intake 97, admin_deletion 28,
+    client_audit 8). Then `apply_migration` with md5 guards.
+  - **After:** enforcement set in both tenants, 12 purposes each, staff texts
+    `draft`, no notice published, `processing_gate()` allows all 22 existing
+    applications, no Plan 2 function executable by `anon`. Advisors: nothing
+    new beyond the "signed-in users can execute SECURITY DEFINER" class (64 of
+    107 are Plan 2 staff RPCs, by design).
+- **Live:** the orchestrator restarted with the embedded worker; its boot sweep
+  found nothing stranded and the new `privacy.retention` run (with
+  `privacy_daily`) finished with zero candidates, no errors. Web serves
+  `/privacidad/medico` ("todavía no ha publicado su aviso", correct: nothing
+  published), the rights portal with its eight rights, `/privacy` behind
+  sign-in, and the old `/s/...` links as 404.
+- **Checked before deploy:** 1470 pgTAP assertions in 26 suites (PGlite);
+  web 397 unit tests, typecheck, lint, build; ai-orchestrator 578 tests. A
+  security review found seven defects (one high: "contact on file" identity
+  verification never compared against the contact on file) and all were fixed
+  (db migration D, web `ebdf842`, ai-orchestrator `6a5b1b0`). A cross-check of
+  ~155 `.rpc()` calls against the SQL signatures found one bug (fixed).
+- **Not seen yet:**
+  - No new screen has been used with a real staff session.
+  - The consent link and the rights portal cannot complete in production:
+    Turnstile and Resend are not configured on `qualifier-web`, so they fail
+    closed (`captcha_unavailable`, `mail_unavailable`), and no notice is
+    published.
+  - Owner checklist (LPD-0): rotate the DB password, anonymous sign-ins off,
+    leaked-password protection on, Site URL, delete `render-blocks.env`, paid
+    plan, Turnstile + Resend, publish the notice. Details in
+    `plans/02-cumplimiento-lpdp-arco-pol.md` § "Estado de implementación".
+
+**Previous headline (2026-11-08, ~16:30 UTC): Plan 1 `DOC-2` to `DOC-9` in production.**
 
 - **Promoted:** each `main` was fast-forwarded to `develop` in deploy order:
   db `3b27cc0`, grading-engine `cc04cbd`, ai-orchestrator `6646d27`, web
