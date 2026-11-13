@@ -1,9 +1,77 @@
-# Status — verified 2026-11-12
+# Status — verified 2026-11-13
 
 This file grew as a log. The headline below is current; everything after it is
 history, each part as true as its date.
 
-**Headline (2026-11-12, ~17:30 UTC): Plan 2 (LPDP / ARCO-POL, `LPD-1` to `LPD-13`) in production, built for a demo; applicant self-service removed.**
+**Headline (2026-11-13, ~23:45 UTC): Plan 3 (client data, `DAT-1` to `DAT-9`) in production, built for a demo.**
+
+- **What it adds.**
+  - **Facts and profiles:** every value seen about a client, from documents,
+    forms, analysts, rectifications and derivations, is a fact with its
+    source. A consolidated profile is built from them by survivorship rules,
+    with conflicts, and shown in the «Datos del cliente» tab.
+  - **Extraction extras:** values found outside a document type's schema are
+    kept and reviewed in «Campos no catalogados».
+  - **Enrichment and catalogs:** deterministic enrichment and an employers
+    catalog.
+  - **Transcription:** `claude-haiku-5-5`, immediate or through Message
+    Batches, opt-in per document type.
+  - **Search:** Spanish full-text search in the top bar.
+  - **Segments:** each carries a purpose, with consent and sensitivity
+    enforced by the database. CSV export is audited.
+  - **Dashboards:** data quality and portfolio panels.
+  - **Semantic search:** pgvector plus Voyage AI. It fails closed: off until
+    `VOYAGE_API_KEY` is set and a superadmin activates the Voyage AI
+    subprocessor.
+  - **Analytics replica:** pseudonymized, with k = 5.
+  - Design and decisions: `plans/03-design.md`. Execution record:
+    `plans/03-PLAN-STATE.md`.
+- **Owner decisions (2026-11-12).** All of DAT-1 … DAT-9, including the two
+  optional phases. Transcription runs in both immediate and batch modes. The
+  backfill used existing extractions only, with no re-extraction.
+- **Promoted** in deploy order:
+  - docs `a3856fe`, db `943add3`, ai-orchestrator `41b3cd4`, web `9d4fdff`;
+    grading-engine is unchanged at `cc04cbd`.
+  - The previous `main`s are docs `08d1f4d`, db `bf445aa`, ai-orchestrator
+    `6a5b1b0` and web `81b2785`.
+  - The orchestrator no longer writes client columns itself
+    (`client-facts.ts` is gone). It calls `record_document_facts()`, so it
+    must not run against a database without migration A.
+- **Migrations**, ledger 42 → 45: `client_data_core`,
+  `client_data_search_enrichment` and `client_data_vectors_analytics`
+  (`20261113000000` … `000200`).
+  - **Order.** Each was replayed locally in PGlite (35 suites), rehearsed
+    rolled back on dev, applied to dev (ledger 55 → 58), then rehearsed rolled
+    back on production and applied there with md5 guards.
+  - **Production rehearsal.** 16 suites, 1,586 assertions, 0 failed, with the
+    real `vector` extension. This includes the independent attacker suite
+    (254) and every Plan 2 privacy suite. The count of security-definer
+    functions executable by `anon` stayed at 0.
+  - **Bugs the real-Postgres runs found.** One was a test that counted rows
+    in the same snapshot as the function writing them (db `6ab72e3`). The
+    other was a backfill regression report too strict about equal copies of
+    one certificate (db `943add3`). Neither was a migration bug.
+- **Backfill on production.** 40 documents produced 316 facts and 17 profiles.
+  One document had not been read. The regression report has 0 rows, so the
+  seven legacy client columns are unchanged. The analytics replica was
+  refreshed: seguros has 5 subjects, all generalized to k = 5; medico's
+  subjects were suppressed.
+- **Reviews.**
+  - A security and privacy review (opus) found 1 high, 2 medium and 2 low
+    problems. The high one: catalogued fields of a sensitive document type
+    reached agents.
+  - An independent attacker suite found 3 more, in `merge_clients` and in how
+    a sensitivity change propagates.
+  - A contract cross-check found 1 problem (the page citation ref).
+  - All are fixed before apply: db `dd17db7`, orchestrator `41b3cd4`, web
+    `c4d0813` / `b3ece68` / `9d4fdff`.
+- **Not exercised live yet:**
+  - transcription and Message Batches against the real Anthropic API, so
+    whether `claude-haiku-5-5` and Batches work with this key is unknown;
+  - Voyage, which has no account yet;
+  - signed-in walks of the new screens on the deployed site.
+
+**2026-11-12 headline (history): Plan 2 (LPDP / ARCO-POL, `LPD-1` to `LPD-13`) in production, built for a demo; applicant self-service removed.**
 
 - **Owner decisions (2026-11-11/12).** Applicant self-service (`FUN-11`) leaves
   the product: its code is gone from web (`7ea00a0`) and ai-orchestrator

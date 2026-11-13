@@ -145,7 +145,37 @@ These are load-bearing decisions, each one already paid for once.
   (Plan 2, `LPD-4`). `clients.processing_state` is written only by functions;
   limited, opposed, blocked and erased clients are refused by the gate, and
   blocked and erased ones are hidden from the lists. Plans 3 and 4 must keep
-  this.
+  this: Plan 3 also keeps them out of new facts, transcription, segments,
+  exports and the analytics replica.
+- **Facts are the source of truth for client data; the profile and the
+  mapped `clients` columns are derived** (Plan 3, `DAT-1`/`DAT-2`). Every
+  value enters `client_facts` through a `record_*` function or a trigger,
+  with its source, evidence date and confidence. Only
+  `refresh_client_profile()` writes a mapped column, and it never writes an
+  older value over a newer source or nulls one. Staff edits and
+  rectifications become facts too, so the client data tab and the column
+  never disagree.
+- **Sensitive client data never reaches an agent, a commercial segment or
+  the analytics replica** (Plan 3). RLS on `client_facts`, the masking in
+  `client_profile_get()`, segment validation and `analytics_refresh()` each
+  enforce it. The profile is not selectable directly, because RLS cannot
+  mask a key inside a JSONB column.
+- **A new external processor fails closed until it is a registered, active
+  subprocessor** (Plan 3, `DAT-8`). Semantic search needs the `vector`
+  extension, `VOYAGE_API_KEY` *and* the active `Voyage AI` row in
+  `subprocessors`. If any one is missing it is off, with the reason shown,
+  and the orchestrator never makes the call.
+- **Pseudonymized data is personal data** (LPDP Art. 4 lit. q, Plan 3
+  `DAT-9`). `analytics.*` is registered in `personal_data_stores`, rebuilt
+  only from `active` clients and erased with the subject. Its key lives in
+  `analytics_private`, which no API role can read.
+- **Plan 2's report and erasure functions are wrapped, not copied.**
+  `data_subject_footprint`, `dsr_access_report`, `dsr_portability_export`,
+  `execute_dsr_erasure` and `privacy_anonymize_applications` (and
+  `merge_clients`) are wrappers over `*_base`. Later tables join them
+  through the `privacy_p3_*` hooks. A migration that `create or replace`s
+  one of the original names replaces the wrapper and silently drops Plan 3
+  from access reports and erasure.
 
 ## Traps that have already cost time
 
@@ -168,8 +198,9 @@ relevant commit message, in `docs/deployment.md`, or in
 - **Literal values in `render.yaml` can come back.** A blueprint sync
   re-applies them over a dashboard edit, and a push to `main` can trigger one:
   ai-orchestrator's 2026-10-29 deploy was a blueprint sync. Today the file
-  declares `MODEL_DEFAULT=claude-sonnet-4-5` and
-  `MODEL_ESCALATION=claude-sonnet-5`, so a model changed only in the dashboard
+  declares `MODEL_DEFAULT=claude-sonnet-5-5`,
+  `MODEL_ESCALATION=claude-sonnet-5` and (Plan 3)
+  `MODEL_TRANSCRIPTION=claude-haiku-5-5`, so a model changed only in the dashboard
   reverts on the next sync. Change it in the file. Until 2026-09-12
   (ai-orchestrator `afee9ce`) the file declared the retired `claude-opus-4-1`
   this way.
