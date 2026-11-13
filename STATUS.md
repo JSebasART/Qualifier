@@ -72,16 +72,24 @@ history, each part as true as its date.
   green rolled-back rehearsal): `security_incidents.consequences`, so the
   Art. 25 notice states the possible consequences instead of a placeholder.
   db `bf445aa`, web `81b2785`, both promoted.
-- **Not seen yet:**
-  - No new screen has been used with a real staff session on the deployed
-    site.
+- **Walked signed in on the deployed site (2026-11-12, owner's session).** All
+  14 Privacidad screens, the client consent and processing-state panels and the
+  application consent strip loaded with real data, no console or request
+  errors. An application from before enforcement correctly says it is
+  processed anyway.
+- **Owner decision (2026-11-12): ready for the presentation.** Until real data
+  arrives, the owner defers Resend, Turnstile, publishing the notice and the
+  staff text, leaked-password protection (paid plan) and the legal review.
+  Anonymous sign-ins are now off (the advisor no longer flags them). Pick
+  these up before any real data:
   - The consent link and the rights portal cannot complete in production:
     Turnstile and Resend are not configured on `qualifier-web`, so they fail
     closed (`captcha_unavailable`, `mail_unavailable`), and no notice is
     published.
-  - Owner checklist (LPD-0): rotate the DB password, anonymous sign-ins off,
-    leaked-password protection on, Site URL, delete `render-blocks.env`, paid
-    plan, Turnstile + Resend, publish the notice. Details in
+  - Owner checklist (LPD-0), run with `scripts/plan2-owner-checklist.sh`:
+    rotate the DB password, leaked-password protection on, Site URL, delete
+    `render-blocks.env`, paid plan, Turnstile + Resend, publish the notice
+    (anonymous sign-ins: done). Details in
     `plans/02-cumplimiento-lpdp-arco-pol.md` § "Estado de implementación".
 
 **Previous headline (2026-11-08, ~16:30 UTC): Plan 1 `DOC-2` to `DOC-9` in production.**

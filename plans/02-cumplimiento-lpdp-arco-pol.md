@@ -971,11 +971,23 @@ las firmas SQL encontró un solo error, corregido. Pruebas: `web` 397, `ai-orche
 
 **Recorrido con sesión, en local.** Todas las pantallas se usaron con sesión de cada rol (administrador, analista, agente, superadministrador), con el enlace de consentimiento y el portal, contra el esquema real en PGlite en `localhost`; los 14 defectos encontrados se corrigieron (web `3b46c0c`, `139f413`).
 
-**Sin verificar.** Ninguna pantalla nueva se ha usado con una sesión real del personal en el sitio desplegado, y las dos páginas
+**Recorrido con sesión en el sitio desplegado (2026-11-12).** Con la sesión del dueño, las 14 pantallas de
+Privacidad (resumen, ajustes, aviso, inventario, encargados, finalidades, consentimientos, solicitudes,
+retención, accesos, transferencias, incidentes, personal, paquete de evidencia), el panel de consentimiento y
+el de estado del tratamiento en la ficha del cliente, y la franja de consentimiento en la solicitud cargaron
+con datos reales y sin errores de consola ni de red.
+
+**Decisión del dueño (2026-11-12): listo para la presentación.** Mientras el sistema no reciba datos reales,
+quedan aplazados: Resend (correo), Turnstile, publicar el aviso y el compromiso del personal, la protección de
+contraseñas filtradas (plan pagado) y la revisión legal. Los inicios de sesión anónimos ya están apagados (el
+asesor de seguridad dejó de señalarlos). Lo aplazado se retoma antes de recibir datos reales.
+
+**Antes de datos reales.** Ninguna pantalla nueva se ha usado con un cliente real, y las dos páginas
 públicas no pueden completarse en producción todavía: faltan Turnstile y Resend en `qualifier-web`
 (fallan cerrado con `captcha_unavailable` / `mail_unavailable`) y el aviso sin publicar.
 
-**Lista del dueño (`LPD-0` y demo):** rotar la contraseña de la base de datos; apagar los inicios
+**Lista del dueño (`LPD-0`), aplazada hasta antes de datos reales salvo los inicios anónimos, ya apagados;
+guiada por `scripts/plan2-owner-checklist.sh`:** rotar la contraseña de la base de datos; apagar los inicios
 anónimos; encender la protección de contraseñas filtradas; corregir la Site URL; borrar
 `render-blocks.env`; decidir el plan pagado; configurar Turnstile y Resend en `qualifier-web`; publicar el
 aviso (Privacidad → Aviso) y, si se quiere, el compromiso del personal (Privacidad → Personal); iniciar
