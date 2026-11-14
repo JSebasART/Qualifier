@@ -30,7 +30,7 @@ history, each part as true as its date.
   optional phases. Transcription runs in both immediate and batch modes. The
   backfill used existing extractions only, with no re-extraction.
 - **Promoted** in deploy order:
-  - docs `a3856fe`, db `943add3`, ai-orchestrator `41b3cd4`, web `9d4fdff`;
+  - docs `a3856fe`, db `943add3`, ai-orchestrator `41b3cd4`, web `9d4fdff`, then `90a8426` after the walk below;
     grading-engine is unchanged at `cc04cbd`.
   - The previous `main`s are docs `08d1f4d`, db `bf445aa`, ai-orchestrator
     `6a5b1b0` and web `81b2785`.
@@ -69,7 +69,19 @@ history, each part as true as its date.
   - transcription and Message Batches against the real Anthropic API, so
     whether `claude-haiku-5-5` and Batches work with this key is unknown;
   - Voyage, which has no account yet;
-  - signed-in walks of the new screens on the deployed site.
+  - the screens are walked; see below.
+- **Walked signed in on the deployed site** (2026-11-14, tenant seguros):
+  - the client data tab with its sources and derived values;
+  - search by employer;
+  - the semantic tab, off with its reason;
+  - segments: income at least US$2,000 gives 6 clients, and the Mercadeo
+    purpose gives 0 (6 excluded for lack of consent);
+  - the data-quality and portfolio panels;
+  - the replica page, the catalogs and the document viewer.
+
+  There were no console errors. Two cosmetic fixes followed: equal copies
+  fold into one row, and employment status shows in Spanish (web
+  `de6fa5e`, `90a8426`).
 
 **2026-11-12 headline (history): Plan 2 (LPDP / ARCO-POL, `LPD-1` to `LPD-13`) in production, built for a demo; applicant self-service removed.**
 
