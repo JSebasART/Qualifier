@@ -195,6 +195,31 @@ These are load-bearing decisions, each one already paid for once.
 
   The orchestrator only claims, signs and posts. Its webhook sender resolves
   DNS and refuses any non-public address before connecting.
+- **Native CRM adapters project; they never enrich** (Plan 4b). HubSpot,
+  Dataverse and Odoo receive the canonical payload and a published mapping
+  version, and what they send is a renaming and formatting of it. A
+  published mapping version is immutable (trigger), and every delivery,
+  attempt and link records the version that produced it.
+- **A CRM is called only from the orchestrator, through the SSRF-guarded
+  transport**, including the wizard's verify, describe and field creation,
+  which run as connector ops the database authorizes. web never sees a
+  credential: it lives in Vault, one JSON per destination, and is shown as
+  a hint of at most 4 characters.
+- **A destination writes only to the CRM it was verified against.** A
+  changed connection target drops the secret, replaced credentials pause an
+  active destination (`reverify_required`), and switching «CRM simulado» on
+  or off clears the verification and archives the mapping. The delivery
+  claim skips an unverified native destination, except deletions and
+  restrictions, which are never held back.
+- **An adopted HubSpot contact is never deleted.** One that existed before
+  Tramiq (matched by e-mail) is emptied of Tramiq's fields on erasure and
+  recorded as «Desvinculado».
+- **Plan 4b extended `privacy_p4_erase` by renaming it** to
+  `privacy_p4_erase_base`; a later plan does the same to the newest hook.
+  Retention anonymization deletes the copy at every CRM holding the
+  application.
+- **«CRM simulado» opens no socket.** It exists for demonstrations, is
+  labelled as simulated, and writes no `data_transfers`.
 
 ## Traps that have already cost time
 

@@ -3,7 +3,64 @@
 This file grew as a log. The headline below is current; everything after it is
 history, each part as true as its date.
 
-**Headline (2026-11-15, ~00:30 UTC): Plan 4 (CRM export, generic layer: `CRM-1`, `CRM-2`, `CRM-3`, the generic parts of `CRM-4`, `CRM-8`) in production, built for a demo.**
+**Headline (2026-11-15, ~15:40 UTC): Plan 4b (native CRM connectors) in production, built for a demo; the live webhook test is still to do.**
+
+- **What it adds.**
+  - **Native connectors:** HubSpot (private-app token), Dynamics 365 /
+    Dataverse (Entra client credentials) and Odoo (API key). Each one has a
+    connection wizard (configuration, credentials shown once, verify,
+    describe, field creation) and a versioned mapping editor. A published
+    mapping is immutable, and every delivery records the version it used.
+  - **«CRM simulado»:** a sandbox mode that opens no socket and writes no
+    `data_transfers`, so the whole flow can be shown without a real CRM.
+  - **Erasure and retention:** a retention anonymization now deletes the
+    copy at every CRM holding the application. A HubSpot contact that
+    existed before Tramiq (matched by e-mail) is adopted, and on erasure it
+    is emptied of Tramiq's fields, never deleted («Desvinculado»).
+  - **Smaller gaps:** application file templates and the segment-builder
+    fix.
+  - Design: `plans/04b-design.md`. Record: `plans/04-PLAN-STATE.md`
+    rows 23–34. Guide: `docs/integrations.md` § Native CRM connectors.
+- **Owner decisions (2026-11-15).** Live webhook test, native connectors
+  and the smaller gaps; not CRM-9 inbound. «CRM simulado» yes; retention
+  deletes the CRM copy; HubSpot adopts an existing contact by e-mail.
+- **Checks before production.**
+  - An independent attacker suite (163 assertions) held against about 150
+    attacks and found 6 failures.
+  - An opus security review found 1 high, 3 medium and 3 low problems. The
+    high one: an adopted HubSpot contact would have been gdpr-deleted on
+    erasure.
+  - All were fixed before any apply. A destination now writes only to the
+    CRM it was verified against: a changed target drops the secret,
+    replaced credentials pause it (`reverify_required`), a sandbox switch
+    clears the verification, and the claim skips unverified native
+    destinations except deletions and restrictions.
+  - Delivery is bounded: 5 rows per destination per claim, and a per-row
+    deadline 45 s before the lease ends.
+  - The orchestrator sweeps pending connector ops every minute.
+- **Promoted:** docs `9cdd3d9`, db `23ddcb5`, ai-orchestrator `5c9fc1f`,
+  web `5012156`; grading-engine is unchanged. The previous `main`s are docs
+  `e75ae60`, db `a771ad1`, ai-orchestrator `cc411ef` and web `4d644b1`.
+- **Migrations**, production ledger 48 → 50 and dev 61 → 63:
+  `crm_connectors` and `crm_retention_files` (`20261115000100`, `000200`).
+  - Replayed locally (45 suites), then rehearsed rolled back on dev and on
+    production with identical results: 9 suites, 643 assertions, 0 failed,
+    including the attacker suite at 163/163. The count of security-definer
+    functions executable by `anon` stayed at 0. Applied with md5 guards.
+  - After apply on production: 0 destinations, `anon` holds 0 write grants
+    and every public table has RLS.
+- **Tests:** ai-orchestrator 1379, web 622 plus a production build, db
+  replay 45 suites.
+- **Deployed:** ai-orchestrator live on `5c9fc1f`, booted clean (no
+  warnings or errors); web live on `5012156`, the Spanish build serving
+  and redirecting to sign-in; `/health` 200.
+- **Not done yet.** The live webhook test and a «CRM simulado» walk on the
+  deployed site, which need the owner signed in. No real HubSpot, Dynamics
+  or Odoo account has been connected: the adapters are tested against
+  recorded responses only. Production has no approved retention policy, so
+  the retention propagation has not run on real data.
+
+**Previous headline (2026-11-15, ~00:30 UTC): Plan 4 (CRM export, generic layer: `CRM-1`, `CRM-2`, `CRM-3`, the generic parts of `CRM-4`, `CRM-8`) in production, built for a demo.**
 
 - **What it adds.**
   - **One builder:** what leaves for a third party is decided by one

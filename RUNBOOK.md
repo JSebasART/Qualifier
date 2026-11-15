@@ -300,6 +300,106 @@ the orchestrator first, sign in as a tenant admin with MFA):
 The receiver URL embeds the web origin; if the origin changes, edit the
 destination.
 
+### Native CRM connectors (Plan 4b)
+
+HubSpot, Dynamics 365 and Odoo destinations. Concepts: `docs/integrations.md`
+§ "Native CRM connectors (Plan 4b)". The CRMs are called only by the
+orchestrator; the queue `integration.connector_ops` runs wizard operations that
+web's call never claimed (a cold start), so a `pending` op that is a minute old
+is picked up by itself.
+
+**Demo with «CRM simulado»** (no CRM account needed; tenant `seguros`, services
+warm, signed in as a tenant admin with MFA):
+
+1. Configuración > Integraciones > «HubSpot» > «Conectar». Name, country SV, tick
+   the data-processing declaration, and tick **«Modo de demostración: usar un
+   CRM simulado»** *before* anything else: the mode cannot change once the
+   destination leaves draft.
+2. «Conexión»: paste any token that matches the format (`pat-na1-` plus 20 or
+   more letters, digits or dashes; for Odoo an API key of 20+ characters; for
+   Dynamics a client secret of 16+). «Guardar credenciales» then shows only
+   «Configurado · termina en ••••xxxx». «Verificar conexión»: every permission
+   ticked. A second destination whose credential **ends in `-limited`** shows
+   «Faltan permisos» for writing deals, opportunities or leads.
+3. «Mapeo»: «Crear propiedades en el CRM» (created, then existing), the editor
+   opens with the suggested mapping; map a source outside the scope to show the
+   inline error; «Publicar versión 1». Dynamics shows the alternate key
+   «en creación» until «Actualizar campos» finds it Active.
+4. «Probar», «Activar» with «Enviar también los clientes existentes que
+   cumplan», then «Enviar ahora». A decided application produces a deal, its
+   association and a note. The destination page's «Registros en el CRM
+   simulado» lists them, masked.
+5. Edit the mapping, «Publicar versión 2»: the log shows «Mapeo v2» and the
+   links are re-sent.
+6. An erasure DSR for a synced client: the propagation reads «Eliminado en
+   «<name>» (HubSpot, HTTP 204, id sbx-…)».
+
+The simulated CRM keeps its records in the orchestrator's memory: they vanish on
+a restart or a free-tier sleep (up to 500 per destination, 50 destinations), and
+the next send recreates them. A simulated destination writes **no**
+`data_transfers` row, by design. Do not use it to claim a real CRM works: the
+real APIs are covered only by recorded contract fixtures until a live smoke
+test runs against a developer account.
+
+**Reconnect a paused destination (`reverify_required`).** The destination
+stopped sending because its credentials were replaced or its connection (Odoo
+`url`, `database`, `login`; Dynamics `org_url`, tenant, client; or the sandbox
+mode) changed after it was verified. Nothing is lost: upserts wait, and
+deletions and restrictions still go out while credentials exist.
+
+1. Open the destination page. If the secret was dropped (a changed Odoo or
+   Dynamics target), the panel asks for the credentials again: enter them
+   with «Reemplazar credenciales».
+2. «Verificar de nuevo». It must finish `ok`; `missing_permissions` lists what
+   to grant in the CRM, `failed` carries a code (below).
+3. If the sandbox mode changed or the describe says it is out of date,
+   «Actualizar campos del CRM» and publish the mapping again; a stale describe
+   validates nothing, and a mode switch archives the published mapping.
+4. «Reanudar». The database refuses with `not_ready` and the list of what is
+   missing (`credentials`, `verify`, `mapping`) if a step was skipped. A verify
+   that was already running when something changed is ignored by design:
+   verify again.
+
+**Read a connector-op failure.** A failed verify, describe or provision shows
+its code on the destination page; the same is in the table (never a response
+body, a URL or a credential):
+
+```sql
+select requested_at, op, status, error, finished_at - started_at as took
+  from integration_connector_ops
+ where destination_id = '<destination id>' order by requested_at desc limit 10;
+```
+
+| `error` | Meaning and next step |
+| --- | --- |
+| `no_credentials` | No secret, or Vault could not return it. Enter the credentials again. |
+| `timeout` | The 40 s budget ran out (the CRM is slow or the service was waking). Try again. |
+| `expired` | The nightly job closed an op nobody finished in 10 minutes (the service was down). Ask again. |
+| `claim_lost` (logs) | Another run took or finished the op. Harmless. |
+| `auth_failed`, `aadsts_<n>` | The CRM refused the credential. For Dynamics, `aadsts_7000215` is a wrong or **expired client secret** (Entra secrets expire; check the expiry date in the app registration), `aadsts_700016` an unknown client id, `aadsts_90002` an unknown tenant. |
+| `permission_missing` | The credential works but lacks a scope, privilege or group. The verify result lists which. |
+| `email_conflict` | HubSpot: the e-mail belongs to a contact with a different Tramiq id. Resolve it in the CRM. |
+| `person_not_synced` | Not a failure: the application waits (`deferred`) for its person. |
+| `row_deadline` | A call outlived its per-row deadline (45 s before the 5-minute lease). It retries by itself. |
+| `ssrf:<reason>` (outcome `blocked`) | The host resolved to a non-public address or is not allowed (a Dynamics `org_url` must be `https://<org>.crm[N].dynamics.com`). |
+| `provision` with `pending` | Dataverse is still building the alternate key. Wait and «Actualizar campos». |
+
+Delivery attempts of a native destination use the same codes in
+`integration_delivery_attempts.error`, with the HTTP status. `rate_limited`
+means the CRM's own limit (HubSpot 100 requests per 10 s on a free private app,
+Dataverse's service protection); the orchestrator already holds back that
+destination for the rest of the run and its limiter spaces the next ones.
+
+**Retention and manual tasks.** A retention anonymization queues a `delete`
+(`motivo «Conservación»`) at every native destination holding the application,
+and a row under «Pendientes manuales» at every API or file destination, due on
+the tenant's propagation deadline. Work those tasks, then «Marcar como hecho»
+with evidence (5–500 characters). The watchdog reports the ones overdue.
+
+**HubSpot contact adopted by e-mail.** If a DSR shows «Desvinculado y vaciado
+(contacto preexistente, no eliminado)», that is correct, not a failure: Tramiq
+blanked its own fields on a contact that existed before and kept the contact.
+
 ## Apply a migration
 
 Render deploys code; nothing applies migrations for you. Production's ledger
