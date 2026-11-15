@@ -96,20 +96,55 @@ history, each part as true as its date.
     security-definer RPCs executable by `authenticated`, as designed.
   - Known: two queue helpers with a mutable `search_path`; leaked-password
     protection off, deferred by the owner.
-- **Findings to act on.**
-  - **`anon` still holds table grants** on 14 core tables from the original
-    schema (clients, applications, documents, tenants, products,
-    profiles…), including TRUNCATE. RLS with no `anon` policy blocks every
-    row through the API, and neither PostgREST nor GraphQL exposes
-    TRUNCATE. Revoke them for defense in depth, in a new migration.
-  - **Cosmetic:** the segment builder shows «valor no válido» before
-    anything is typed.
+- **Fixed from this check: `anon` held table grants** on 14 core tables
+  from the original schema, including TRUNCATE, which RLS does not cover.
+  - Migration `anon_table_privileges` (db `a771ad1`) revokes INSERT, UPDATE,
+    DELETE, TRUNCATE, REFERENCES and TRIGGER from `anon` on every public
+    relation. SELECT stays, because RLS empties an anonymous read and
+    `anon_surface_test` wants empty rows, not an error.
+  - Rehearsed rolled back on dev and production: the new suite 4/4, plus
+    anon_surface 8, write_authorization 38, rls_isolation 31, integration
+    attacker 111, plan4 attacker 174 and plan3 attacker 254.
+  - Applied: production ledger 47 → 48 and dev 60 → 61. `anon` now holds 0
+    write-type grants.
+  - The public pages still return 200. A new suite fails if a future table
+    keeps the default grants.
+- **Signed-in walk, done on the local harness** (`scratchpad/ui-harness2`:
+  every migration in PGlite, fake sessions on localhost, egress guard). The
+  owner could not sign in on the deployed site.
+  - **Plan 4, as the seguros tenant admin:**
+    - The catalog shows the three kinds and the CRM recipe cards.
+    - API wizard: the draft is saved through the DB, the scope disables
+      health attributes and unflagged health form fields, and the key is
+      shown once.
+    - The API refuses the key before activation (401
+      `destination_inactive`). After activation, persons and applications
+      return 200 in `tramiq.crm.v1`: scoped attributes only, no DUI and no
+      health data, and no decision without `read:decisions`. Events return
+      403 without `read:events`, and a wrong key 401.
+    - The destination page counts the disclosed subjects.
+    - The file destination exports a valid XLSX with the HubSpot template,
+      and «Exportar para CRM» shows on Clientes.
+    - A generated notice draft lists both destinations as recipients with
+      their country.
+    - The client page shows «Sincronizado con …».
+  - **Plans 1–3:** document types, Privacidad (summary, inventory with the
+    integration tables, notice), the client data tab (100 % profile), search,
+    the dashboard panels, attributes, employers, the replica and the segment
+    builder all render without errors.
+  - **As a medico agent:** «Integraciones» says only the admin manages it and
+    shows no destinations; there is no CRM export; health values read
+    «Acceso restringido».
+  - **Errors:** none in the console or the SQL log, other than the three
+    refusals the walk triggered on purpose.
+- **Cosmetic:** the segment builder shows «valor no válido» before anything
+  is typed.
 - **Still not exercised live:**
-  - the signed-in walks of «Integraciones» and the Plan 1–3 screens since
-    the Plan 4 deploy (postponed by the owner);
+  - the walk on the deployed site with the owner's session;
   - transcription and Message Batches against the Anthropic API;
   - Voyage, which has no account yet;
-  - a webhook delivered to the test receiver.
+  - a webhook delivered to the test receiver (it needs a public https
+    origin, so it cannot run on localhost).
 - **Deferred by the owner, before real data:** Resend, Turnstile, publishing
   the notice and staff text, leaked-password protection, a paid plan (the
   free tier sleeps, so integrations wait for traffic), and the legal review.
