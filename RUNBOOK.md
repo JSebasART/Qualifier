@@ -208,6 +208,98 @@ application, upload a document, and watch a job move through:
 
 If `ready` climbs and never falls, nothing is consuming the queue.
 
+## Integrations
+
+CRM export (Plan 4). Concepts and formats: `docs/integrations.md`. Nothing is
+sent until a tenant admin activates a destination. All SQL below runs through
+the Supabase connector as the service role (never a secrets-file script).
+
+**Is it alive?** `/health/queue` (bearer header, see Health checks) has an
+informational `integrations` block, or call the database directly:
+
+```sql
+select integration_health();
+-- destinations_active, destinations_error[{tenant_name,name,status_reason}],
+-- due, oldest_due_seconds, dead_24h, events_undispatched
+```
+
+Read `oldest_due_seconds` like `oldest_ready_seconds`: it climbing means nothing
+is delivering (service asleep, `INTEGRATIONS_DISABLED` set, or a destination
+failing). `events_undispatched` climbing means the dispatch job is not running.
+The watchdog also reports destinations in `error`, propagations due within a
+business day or overdue, and a backlog older than 30 minutes.
+
+**Look at the outbox and deliveries.**
+
+```sql
+-- Pending events (ids and codes only)
+select id, kind, entity, occurred_at from integration_events where dispatched_at is null order by id limit 20;
+-- Live deliveries per destination and state
+select d.name, x.status, x.action, count(*), min(x.next_attempt_at)
+  from integration_deliveries x join integration_destinations d on d.id = x.destination_id
+ group by 1, 2, 3 order by 1, 2;
+-- Recent attempts: outcome, HTTP status, error code (never a response body)
+select attempted_at, event_type, entity, outcome, http_status, error
+  from integration_delivery_attempts where destination_id = '<destination id>'
+ order by attempted_at desc limit 20;
+```
+
+**Resend or retry.** In the destination page: «Reintentar» on a `failed` or
+`dead` delivery, «Reenviar» on a delivered one (forces a send even if the
+content is unchanged), «Enviar ahora» to wake the orchestrator, «Sincronizar
+ahora» on a client or application. Then, if the service was asleep, wait for it
+or press «Enviar ahora» (`POST /api/integrations/kick`). `integration_retry_delivery`
+and `integration_resend_delivery` need a tenant admin session; do not hand-edit
+`integration_deliveries`.
+
+**Pause a destination.** «Pausar» on the destination page
+(`integration_set_status(id, 'paused')`). Upserts wait; **deletions and
+restrictions still go out**, because a privacy obligation does not wait.
+«Reanudar» sets it back to `active`. A destination in `error` (`auth_failed`,
+`endpoint_gone`, `url_not_allowed`) is re-enabled with «Reanudar» after the
+cause is fixed; that clears the reason and the failure counter. Emergency stop
+for everything: set `INTEGRATIONS_DISABLED=1` on the orchestrator.
+
+**Rotate a secret.** «Rotar secreto» (`integration_rotate_secret`): the new
+`whsec_` secret is shown once; the previous one stays valid 24 hours, and while
+both are valid every message carries two signatures. The receiver switches at
+its leisure inside the window. The secret cannot be read back; if it is lost,
+rotate again. API keys cannot be rotated in place: create a new one and revoke
+the old.
+
+**What `dead` means.** A delivery gave up: a validation answer (400, 404, 405,
+413, 415, 422, any 3xx, other 4xx), a blocked URL, or 24 hours of failed
+retries. Open its attempt log for the HTTP status and error code. Fix the
+receiver (or the URL), then «Reintentar». `dead` rows that are `delete` or
+`restrict` keep an open propagation with a due date that the watchdog watches.
+`skipped` is not a failure: the builder refused the subject (limited, no
+commercial basis, no international consent) or the content was unchanged.
+
+**Demo with the test receiver** (tenant `seguros`, deployed site; warm web and
+the orchestrator first, sign in as a tenant admin with MFA):
+
+1. Configuración > Integraciones: show the catalog and a recipe.
+2. «Webhook»: name, country SV, tick the data-processing declaration.
+3. «Qué enviar» and «Datos»: show «Salud — IMC» disabled («Dato sensible: no sale
+   de Tramiq»).
+4. «Conexión»: tick «Usar el receptor de prueba de Tramiq», «Generar secreto de
+   firma» (copy once).
+5. «Probar»: within seconds «Entregado, HTTP 200»; the receiver panel shows
+   «Firma válida» and the masked synthetic client.
+6. «Activar» with «Enviar también los clientes existentes que cumplan».
+7. Open a client: «Sincronizado con …». Set a client to «Tratamiento limitado»
+   from Privacidad: «Enviar ahora», the log shows a `person.restricted` delivery.
+8. Approve an application, «Enviar ahora»: `application.decided` in the log.
+9. Execute an erasure DSR for a synced client, «Enviar ahora»: a `delete`
+   delivery, and the request shows the propagation completed.
+10. «Rotar secreto», then «Enviar prueba» still verifies.
+11. «API REST» wizard: key shown once; `curl -H "Authorization: Bearer tq_live_…"
+    <origin>/api/v1/persons?limit=5`; open `/api/v1/openapi.json`.
+12. «Exportación de archivos» (HubSpot, XLSX): Clientes > «Exportar para CRM».
+
+The receiver URL embeds the web origin; if the origin changes, edit the
+destination.
+
 ## Apply a migration
 
 Render deploys code; nothing applies migrations for you. Production's ledger

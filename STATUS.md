@@ -1,9 +1,67 @@
-# Status — verified 2026-11-13
+# Status — verified 2026-11-15
 
 This file grew as a log. The headline below is current; everything after it is
 history, each part as true as its date.
 
-**Headline (2026-11-13, ~23:45 UTC): Plan 3 (client data, `DAT-1` to `DAT-9`) in production, built for a demo.**
+**Headline (2026-11-15, ~00:30 UTC): Plan 4 (CRM export, generic layer: `CRM-1`, `CRM-2`, `CRM-3`, the generic parts of `CRM-4`, `CRM-8`) in production, built for a demo.**
+
+- **What it adds.**
+  - **One builder:** what leaves for a third party is decided by one
+    database function, `integration_payload()`. It applies the scope and a
+    sensitivity cap the screen cannot bypass, sends active subjects only on
+    a commercial basis that has not been refused or revoked, requires
+    international-transfer consent, and never sends files or URLs.
+  - **Delivery:** an event outbox written by triggers, with deliveries and
+    an attempts log.
+  - **Webhooks:** Standard Webhooks signing with the secrets in Supabase
+    Vault and rotation, and an SSRF-guarded sender in the orchestrator.
+  - **Public API v1:** keys stored as hashes, scopes, cursors and an
+    OpenAPI document.
+  - **Files:** CSV and XLSX exports with the import templates of HubSpot,
+    Dynamics 365, Odoo and Salesforce.
+  - **Propagation:** erasures, restrictions and revocations reach every
+    destination holding the subject within business days.
+  - **Screens:** «Integraciones» in Configuración, sync badges on clients
+    and applications, and an in-app test receiver for the demo.
+  - Design: `plans/04-design.md`. Record: `plans/04-PLAN-STATE.md`. Guide:
+    `docs/integrations.md`.
+- **Owner decisions (2026-11-14).** The generic layer only, with no native
+  connectors: HubSpot, Dynamics and Odoo are listed as "vía webhook/API"
+  with recipes. CRM-9 and CRM-10 are skipped. Apply and deploy.
+- **Promoted:**
+  - docs `e75ae60`, db `a14cd84`, ai-orchestrator `cc411ef`, web
+    `4d644b1`; grading-engine is unchanged.
+  - The previous `main`s are docs `a3856fe`, db `943add3`, ai-orchestrator
+    `41b3cd4` and web `90a8426`.
+- **Migrations**, production ledger 45 → 47 and dev 58 → 60:
+  `integrations_core` and `integrations_api_exports`
+  (`20261114000000`, `000100`).
+  - **Order.** Replayed locally (40 suites), rehearsed rolled back on dev
+    with real Vault, applied to dev, then rehearsed rolled back on production
+    and applied there with md5 guards.
+  - **Production rehearsal.** 13 suites, 1,541 assertions, 0 failed,
+    including the independent attacker suite (174) and the Plan 2 and
+    Plan 3 suites. The count of security-definer functions executable by
+    `anon` stayed at 0.
+  - **What the real-Postgres runs found.** All of them were test
+    assumptions, none a migration bug:
+    - a Saturday edge in business days;
+    - secret checks that assumed the store used when Vault is absent;
+    - collation order;
+    - a Plan 2 suite assertion that read every tenant's search log.
+- **After apply:** 0 destinations and 0 events, so nothing leaves until a
+  tenant admin activates a destination. Plan 3's data is intact (316 facts,
+  17 profiles).
+- **Reviews.**
+  - A security review (opus) found 1 high, 4 medium and 4 low problems. The
+    high one: unflagged health form fields could leave.
+  - An independent attacker suite found 3 more: masking, loopback URL forms
+    and a country switch.
+  - A contract check found 0 breaking mismatches.
+  - All were fixed before apply: db `3b99722`; web `efa371c`, `37f0aab`,
+    `4d644b1`.
+
+**2026-11-13 headline (history): Plan 3 (client data, `DAT-1` to `DAT-9`) in production, built for a demo.**
 
 - **What it adds.**
   - **Facts and profiles:** every value seen about a client, from documents,

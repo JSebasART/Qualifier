@@ -1,0 +1,56 @@
+# Plan 4 — execution state
+
+Execution record for [`04-exportacion-a-crm.md`](04-exportacion-a-crm.md), run with the plan-conductor
+skill. Technical design: [`04-design.md`](04-design.md).
+
+## Starting point (2026-11-14)
+
+- Plan 3 complete and in production (STATUS 2026-11-13/14): main pins docs `a3856fe`, db `943add3`,
+  ai-orchestrator `41b3cd4`, web `90a8426`, grading-engine `cc04cbd`; umbrella `807db74`.
+  Production ledger 45, dev ledger 58.
+
+## Owner decisions (2026-11-14)
+
+- **Generic layer only**: event outbox, signed webhooks (Standard Webhooks), public REST API v1 with
+  keys + OpenAPI, CSV/XLSX export with the import templates of HubSpot, Dynamics, Odoo and Salesforce,
+  propagation of erasures/restrictions/revocations within 5 business days, reconciliation, monitoring
+  (CRM-1, CRM-2, CRM-3, the parts of CRM-4 the generic layer needs, CRM-8).
+- **No native connectors** (CRM-5 HubSpot, CRM-6 Dynamics, CRM-7 Odoo): listed in the catalog as
+  "vía webhook/API" with recipes.
+- **CRM-9 and CRM-10 skipped** (CRM-9 relied on the removed self-service link).
+- **Apply and deploy** as in Plans 2 and 3. Integrations stay off until a tenant admin activates a
+  destination.
+
+## Work packages
+
+| # | Package | Phase | Model / effort | Status | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 0 | Technical design `plans/04-design.md` | Design | opus / high | done | 779 lines; 2 migrations (`20261114000000_integrations_core`, `…000100_integrations_api_exports`); DB decides, orchestrator moves bytes; outbox with claim/finish + leases; Vault with guarded fallback `integration_private`; D17 wraps Plan 3's `privacy_p3_*_c` (no Plan 2 wrapper replaced); in-app test receiver; dependency-free XLSX writer; `commercial_management` = legitimate interest unless refused/revoked (matches production data) |
+| 1 | DB-A core migration + 3 suites | Implement | sonnet / high | done | db `34b08d1`; suites core 68, attacker 95, delivery 111; replay 39 suites all pass (conductor re-ran). Propagation ignores `scope.events`; destination names unique per tenant while not disconnected; `claimed_action` column; sensitive form fields can never be approved. Interrupted once by the usage limit |
+| 7 | Independent attacker suite `plan4_attacker_test.sql` | Test | sonnet / medium | done | 174 assertions, 5 real failures: `integration_mask()` leaves condition `detail` in clear in `payload_masked`; URL gate accepts `2130706433`, `127.1`, `localhost.`; country flip on an active destination dodges the international-consent gate. ~45 payload-leak attempts, grants, keys, export, outbox, propagation held |
+| 10 | FIX-DB: review #1–#7 + attacker #67/#73–75/#77 + deliveries column grant, editing unapplied A/B in place | Implement | sonnet / high | done | db `3b99722`; replay 40 suites all pass incl. plan4_attacker 174/174. Conductor fixed a flaky consent fixture in `integration_core_test` (equal `created_at` ⇒ latest decision by random uuid; failed ~1 in 3) |
+| 11 | Web follow-ups: `country_locked` message + read-only country, form keys listed only when `sensitive:false`, approval offers `decision.conditions.detail` | Implement | sonnet / medium | done | web `4d644b1`; 567 tests |
+| 13 | Dev rehearsal 1 (rolled back) | Integrate | conductor | done | A, B apply on Supabase with Vault; anon secdef 0 → 0; 11/13 suites clean (plan3_attacker 254, privacy 224/226, replica 78, semantic 49, rls 31, write 38, anon 8, integration core 87, attacker 111, api 117). 4 failures: delivery #93 (`days_left` negative), #118 and plan4_attacker #24 (assume the fallback secret store; Vault present), #154 (array order depends on collation) ⇒ debug agent on dev |
+| 14 | All 24 new chunks staged on dev and production (production `01_1` uploaded by the conductor) | Integrate | sonnet / low | done | |
+| 15 | Fix the 4 environment-dependent assertions (debug on dev) | Test | sonnet / high | done | db `3cbafac`: Saturday business-day edge (fixture −10 days), secret checks look at the store in use (Vault vs fallback), `collate "C"` array order. Migrations unchanged. Dev probe 144/144, 174/174; replay 40 suites |
+| 16 | Dev apply | Integrate | conductor | done | A (`67eeda36…`), B (`99916de5…`) md5-guarded: dev ledger 58 → 60; anon secdef 0; Plan 3 `_c` hook wrapped |
+| 17 | Production staging refresh (6 changed suite chunks) | Integrate | sonnet / low | done | old copies renamed `old12_*`, `_staging.files` cleared; 16 files md5-verified |
+| 18 | Production rehearsal (rolled back) | Integrate | conductor | done | 1st run: `privacy_execution_test` errored (scalar subquery, >1 row) — pre-existing on production data (Plan 3's real `search.performed` rows from the deployed walk), reproduced without Plan 4; located by statement-offset probes; fixed in db `a14cd84` (scoped to the suite's analyst) and applied in the rehearsal by an md5-checked `replace()`. 2nd run: 13 suites, 1541 assertions, 0 failed, real Vault, anon secdef 0 → 0 |
+| 19 | Production apply + promote | Integrate | conductor | done | A, B md5-guarded: ledger 45 → 47; 0 destinations, 0 events (nothing leaves until an admin activates one); Plan 3 data intact (316 facts, 17 profiles). Promoted docs `e75ae60`, db `a14cd84`, ai-orchestrator `cc411ef`, web `4d644b1` |
+| 12b | Upload notes | Integrate | conductor | — | Interrupted once by the usage limit. Prod chunk `01_1` failed md5 twice from a sonnet uploader: it "corrected" a Spanish table comment (line 295, 12 chars shorter both times); the conductor uploaded it verbatim (md5 ok). Dev's `01_1` went through first time |
+| 12 | Staging `scratchpad/apply8` (2 migrations + 13 suites, 47 chunks; 24 new chunks to dev and prod, the rest already staged from Plan 3) | Integrate | 4 × sonnet / low | running | |
+| 2 | DB-B API keys, `api_v1_*`, events cursor, file export + suite | Implement | sonnet / high | done (db `1041279`) | `integration_api` 116/116 against DB-A as written then; full replay 36 suites. Bare payloads from `api_v1_person/_application`; cursors as strings; export capped at 5000 (`capped: true`); `api_keys_guard` trigger (hash/prefix/scopes immutable, revoked keys stay revoked); events for erasure/restriction only where a link exists. Untested in replay: Vault, MFA gating. Contract notes sent to WEB-B |
+| 3 | ORCH `src/integrations/` (dispatch, deliver, reconcile, webhook signing, SSRF guard, kick route, watchdog) | Implement | sonnet / high | done | ai-orchestrator `cc411ef` (develop, not pushed); 944 tests, tsc clean, boundary clean (verified by conductor). Optional env `INTEGRATIONS_DISABLED`, `INTEGRATION_HTTP_TIMEOUT_MS`, `INTEGRATION_DELIVER_BATCH`, `INTEGRATION_DELIVER_CONCURRENCY`; disabled mode answers kick 202 `{queued:false, disabled:true}`; logs never carry URLs |
+| 4 | WEB-A foundation + «Integraciones» (catalog, wizard, destination page, API keys, kick route, notice recipients) | Implement | sonnet / medium | done | web `5091dba` (develop, not pushed); 509 tests, typecheck, lint 0 (verified tsc by conductor). Superadmin read-only + sensitive approval; delivery log masks again client-side |
+| 5 | WEB-B `/api/v1` + OpenAPI, CSV/XLSX export, badges, test receiver | Implement | sonnet / high | done | web `176a196`; 564 tests, typecheck, lint, production build (conductor ran them). Single-item API responses wrapped `{"data": …}`; receiver leaves URL matching to the DB; CSV phones starting with `+` get the neutralizing apostrophe (review to judge). Interrupted once by the usage limit |
+| 8 | Security and privacy review (db, orchestrator, web) | Review | opus / high | done | HIGH: health form fields (seed `bmi`, `smoker`, `pre_existing_conditions` with no `sensitive` flag) can leave without approval (A:820/:919) ⇒ block by default. MED: `delete_client`/`delete_application` cascade deliveries+links with no delete sent, `merge_clients` leaves links on the duplicate; disconnected webhooks holding links miss erasure propagation; Vault rotation fails on the unique `secrets_name_idx` (confirmed on dev) since every secret is named `integration:<id>`; paused/circuit-open destinations hold back deletes/restricts. LOW: any sensitive approval releases condition `detail`; receiver invalid receipts flush the 20 real ones; API quota by prefix and CSV phone apostrophe (fixed web `efa371c`, `37f0aab`, plus `/events?cursor=` alias). SSRF, signing, secrets, grants, keys, payload builder, hooks found sound |
+| 9 | Contract cross-check web/orchestrator ↔ migrations | Test | sonnet / medium | done | 43 calls match (24 session, 9 service, 8 orchestrator, kick route, table reads, JSON shapes). Cosmetic: `/events` takes `?after=` while `next_cursor` invites `?cursor=` (accept alias). Tidy: `integration_deliveries` table-wide select to `authenticated` includes `claim_token`/`payload_hash` (RLS limits to tenant admins) ⇒ column grant in FIX-DB |
+| 6 | DOCS (`docs/integrations.md`, schema, architecture, RUNBOOK, CLAUDE.md) | Implement | sonnet / medium | waiting | |
+
+## Conductor answers to the design's questions (2026-11-14, production, read-only)
+
+1. `commercial_management`: legal basis "Interés legítimo / contrato", `requires_consent = false` (both tenants);
+   `international_processing` requires consent. D10/D11 match the data.
+2. `postgres` can read `vault.decrypted_secrets`, delete from `vault.secrets`, execute `vault.create_secret`.
+3. Production has 0 `consent_records`: a demo destination must be in SV to send (abroad needs consent).
+4. Web origin stable: https://qualifier-web.onrender.com.

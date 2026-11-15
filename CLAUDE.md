@@ -175,7 +175,26 @@ These are load-bearing decisions, each one already paid for once.
   `merge_clients`) are wrappers over `*_base`. Later tables join them
   through the `privacy_p3_*` hooks. A migration that `create or replace`s
   one of the original names replaces the wrapper and silently drops Plan 3
-  from access reports and erasure.
+  from access reports and erasure. Plan 4 extends one level down:
+  `privacy_p3_footprint_c` and `privacy_p3_erase_c` wrap `*_c_base` and add
+  integration data.
+- **What leaves for a third party is decided by one database function,
+  `integration_payload()`** (Plan 4, `CRM-1`). Webhooks, the public API v1
+  and the CRM file exports all build their rows through it:
+  - **scope and sensitivity:** it applies the destination's scope and a
+    sensitivity cap the screen cannot bypass. Sensitive attributes leave only
+    with a superadmin approval that names them, and a form answer only when
+    its field says `"sensitive": false`.
+  - **who:** it sends active subjects only, on a commercial basis that has not
+    been refused or revoked, with international-transfer consent for a
+    destination outside the country.
+  - **what never leaves:** files, signed URLs and extracted data.
+  - **records:** each disclosure writes `data_transfers`, and erasures,
+    restrictions and revocations reach every destination holding the subject
+    within business days.
+
+  The orchestrator only claims, signs and posts. Its webhook sender resolves
+  DNS and refuses any non-public address before connecting.
 
 ## Traps that have already cost time
 
