@@ -1,7 +1,7 @@
 # Plan 4 — technical design (generic CRM export layer)
 
-*2026-11-14. Implementation design for [`04-exportacion-a-crm.md`](04-exportacion-a-crm.md) under the owner
-decisions of 2026-11-14 ([`04-PLAN-STATE.md`](04-PLAN-STATE.md)): **generic layer only** (CRM-1, CRM-2, CRM-3, the
+*2026-11-14. Implementation design for `04-exportacion-a-crm.md` (removed 2026-11-15; in git history) under the owner
+decisions of 2026-11-14 (`04-PLAN-STATE.md` (removed 2026-11-15; in git history)): **generic layer only** (CRM-1, CRM-2, CRM-3, the
 parts of CRM-4 the generic layer needs, CRM-8). No native connectors, no mapping editor, no CRM-9/CRM-10.
 Audience: implementation agents who have not read the plan. Goal: a **presentable demo** where every flow works
 end to end; not production hardening. Where this file changes the plan it says so (**⚠ deviation**). Schema keys

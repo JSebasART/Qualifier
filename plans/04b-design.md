@@ -1,8 +1,8 @@
 # Plan 4b — technical design (native CRM connectors, mapping versions, the remaining gaps)
 
-*2026-11-15. Implementation design for the parts of [`04-exportacion-a-crm.md`](04-exportacion-a-crm.md) left out of
+*2026-11-15. Implementation design for the parts of `04-exportacion-a-crm.md` (removed 2026-11-15; in git history) left out of
 the first round ([`04-design.md`](04-design.md), in production since 2026-11-15), under the owner decision of
-2026-11-15 ([`04-PLAN-STATE.md`](04-PLAN-STATE.md) row 23): **CRM-5 HubSpot, CRM-6 Dynamics 365 (Dataverse), CRM-7
+2026-11-15 (`04-PLAN-STATE.md` (removed 2026-11-15; in git history) row 23): **CRM-5 HubSpot, CRM-6 Dynamics 365 (Dataverse), CRM-7
 Odoo** on a common adapter interface, the **mapping editor with immutable mapping versions**, **application-level
 file templates**, **propagation of retention anonymizations**, and the **segment-builder premature error**. Out of
 scope: CRM-9 inbound, OAuth apps / marketplace, a native Salesforce adapter, Nango. Audience: sonnet implementation

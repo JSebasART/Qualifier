@@ -1,6 +1,6 @@
 # Plan 2 — technical design (LPD-1 … LPD-13)
 
-*2026-11-11. Implementation design for [`02-cumplimiento-lpdp-arco-pol.md`](02-cumplimiento-lpdp-arco-pol.md).
+*2026-11-11. Implementation design for `02-cumplimiento-lpdp-arco-pol.md` (removed 2026-11-15; in git history).
 Audience: engineers who have not read the plan. Goal is a **presentable demo**: every LPD component has
 a working end-to-end flow. Where the plan's SQL sketch conflicts with the existing schema, this file
 follows the schema and says so (marked **⚠ deviation**). Schema keys English, UI Spanish, migrations

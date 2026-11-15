@@ -61,7 +61,8 @@ starting work in one: `git -C <path> checkout develop && git -C <path> pull`.
 ## Read-first order
 
 1. [`STATUS.md`](STATUS.md) — verified current state, and what is broken.
-2. [`PLAN.md`](PLAN.md) — what to do next, in order.
+2. [`plans/README.md`](plans/README.md) — the design records of Plans 1–4b,
+   cited by code comments for the reasoning behind each piece.
 3. `docs/architecture.md` — module map and how the pieces talk.
 4. `docs/roadmap.md` — the phased build history, with what each phase actually
    shipped. Dense but authoritative; the checkbox annotations carry real detail.

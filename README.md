@@ -36,13 +36,11 @@ Then:
 - [`CLAUDE.md`](CLAUDE.md) — how this workspace fits together: the submodule
   commit flow, the invariants worth not breaking, and the traps that have already
   cost time. Written for whoever (or whatever) picks the project up cold.
-- [`PLAN.md`](PLAN.md) — what to do next, in order, from restoring service to a
-  demo you can run in front of a prospect.
+- [`STATUS.md`](STATUS.md) § "Open" — what is left to do, in order.
 - [`RUNBOOK.md`](RUNBOOK.md) — the commands: rebuild the database, deploy,
   verify, prepare for a demo.
-- [`SELF-SERVICE-PLAN.md`](SELF-SERVICE-PLAN.md) — insurer-owned links where
-  applicants file their own applications (`FUN-11`): the design, and its
-  implementation status (built and tested on a branch, not deployed).
+- [`plans/`](plans/README.md) — the design records of the four November 2026
+  plans, which code comments cite for the reasoning behind each piece.
 
 Then the reference documentation:
 

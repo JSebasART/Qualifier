@@ -3,7 +3,7 @@
 Operational procedures. `docs/deployment.md` explains *why* the deployment is
 shaped the way it is and is worth reading once; this file is what you run.
 
-Current state: [`STATUS.md`](STATUS.md). Next steps: [`PLAN.md`](PLAN.md).
+Current state and open items: [`STATUS.md`](STATUS.md).
 
 ## Identifiers
 
@@ -406,11 +406,11 @@ Render deploys code; nothing applies migrations for you. Production's ledger
 records them under apply-time versions, so its names will not match the files —
 compare content, not names.
 
-**Never `supabase db push` against production** (PLAN.md § "What not to do"):
+**Never `supabase db push` against production** (the ledger keys migrations by apply time, so a push would re-run them all):
 the ledger's versions match none of the filenames, so a push would replay
 everything from `init_schema`. Apply through the Supabase connector instead,
 one migration per `apply_migration` call. The 2026-10-29 apply of five
-migrations used this sequence (STATUS.md § 2):
+migrations used this sequence:
 
 1. **Baseline.** Read-only: compare production with a local database built from
    the files up to the last applied migration. Compare definitions and per-role

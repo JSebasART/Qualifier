@@ -1,6 +1,6 @@
 # Plan 3 — technical design (DAT-1 … DAT-9)
 
-*2026-11-12. Implementation design for [`03-datos-del-cliente-y-enriquecimiento.md`](03-datos-del-cliente-y-enriquecimiento.md).
+*2026-11-12. Implementation design for `03-datos-del-cliente-y-enriquecimiento.md` (removed 2026-11-15; in git history).
 Audience: implementation agents who have not read the plan. Goal: a **presentable demo** in which every DAT
 phase works end to end; not production hardening. Where this file changes the plan's SQL sketch it says so
 (**⚠ deviation**). Schema keys English, UI Spanish, migrations append-only, Plan 2 rules everywhere. Never
