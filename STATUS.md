@@ -61,6 +61,59 @@ history, each part as true as its date.
   - All were fixed before apply: db `3b99722`; web `efa371c`, `37f0aab`,
     `4d644b1`.
 
+**Whole-system check after Plans 1–4 (2026-11-15, ~02:45 UTC; without the signed-in walk, which the owner postponed):**
+
+- **Tests, all green.**
+  - Database replay: 40 suites.
+  - grading-engine: 299 tests, typecheck clean.
+  - ai-orchestrator: 944 tests, typecheck clean.
+  - web: 567 tests, typecheck, lint and the production build.
+- **Deployed.**
+  - Health: web returns 200 (Spanish build), and the orchestrator's and
+    grading engine's `/health` return ok.
+  - API: `/api/v1/openapi.json` returns 200, and `/api/v1/persons` without a
+    key returns 401 `missing_key`.
+  - Logs: no error or fatal lines on the three services since 2026-11-14.
+  - Queue: pg-boss shows 151 completed jobs in two days, none failed or
+    stuck.
+- **Database invariants (production).**
+  - RLS is on for every public table, and every personal-data table is in
+    `personal_data_stores`.
+  - No security-definer function is executable by `anon`.
+  - The wrapper chain (Plan 2 `*_base`, Plan 3 `merge_clients_base`,
+    Plan 4 `privacy_p3_*_c_base`) is intact.
+  - `analytics_private` and `integration_private` are unreachable to
+    `authenticated`.
+- **Data per plan.**
+  - Plan 1: 12 published document types per tenant.
+  - Plan 2: consent enforcement on in both tenants, 12 purposes each, 0
+    DSRs, 0 transfers.
+  - Plan 3: 17 clients and 17 profiles, 5 replica subjects (seguros), 0 open
+    conflicts, `vector` installed and Voyage inactive.
+  - Plan 4: 0 destinations, 0 events.
+- **Advisors.**
+  - Expected: four RLS tables with no policy that are function-only; 149
+    security-definer RPCs executable by `authenticated`, as designed.
+  - Known: two queue helpers with a mutable `search_path`; leaked-password
+    protection off, deferred by the owner.
+- **Findings to act on.**
+  - **`anon` still holds table grants** on 14 core tables from the original
+    schema (clients, applications, documents, tenants, products,
+    profiles…), including TRUNCATE. RLS with no `anon` policy blocks every
+    row through the API, and neither PostgREST nor GraphQL exposes
+    TRUNCATE. Revoke them for defense in depth, in a new migration.
+  - **Cosmetic:** the segment builder shows «valor no válido» before
+    anything is typed.
+- **Still not exercised live:**
+  - the signed-in walks of «Integraciones» and the Plan 1–3 screens since
+    the Plan 4 deploy (postponed by the owner);
+  - transcription and Message Batches against the Anthropic API;
+  - Voyage, which has no account yet;
+  - a webhook delivered to the test receiver.
+- **Deferred by the owner, before real data:** Resend, Turnstile, publishing
+  the notice and staff text, leaked-password protection, a paid plan (the
+  free tier sleeps, so integrations wait for traffic), and the legal review.
+
 **2026-11-13 headline (history): Plan 3 (client data, `DAT-1` to `DAT-9`) in production, built for a demo.**
 
 - **What it adds.**
